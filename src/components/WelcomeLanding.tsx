@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, RefreshCw, Zap, Smartphone, LogIn, CheckCircle } from 'lucide-react';
 import { useAuth } from './AuthContext';
+import { Logo } from './Logo';
 
 export const WelcomeLanding: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -16,9 +17,7 @@ export const WelcomeLanding: React.FC = () => {
       {/* Top Bar */}
       <header className="max-w-6xl w-full mx-auto flex justify-between items-center py-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <Calendar className="w-6 h-6 text-white" />
-          </div>
+          <Logo className="w-10 h-10 drop-shadow-md" />
           <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-cyan-400">
             {t('app.title')}
           </span>

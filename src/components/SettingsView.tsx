@@ -136,25 +136,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
       <div className="flex bg-slate-900/80 p-1.5 rounded-xl border border-slate-800">
         <Link
           to="/config/shifts"
-          className={`flex-1 text-center py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'shifts' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
-          }`}
+          className={`flex-1 text-center py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'shifts' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
+            }`}
         >
           {t('settings.tabs.shifts')}
         </Link>
         <Link
           to="/config/sequence"
-          className={`flex-1 text-center py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'sequence' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
-          }`}
+          className={`flex-1 text-center py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'sequence' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
+            }`}
         >
           {t('settings.tabs.sequence')}
         </Link>
         <Link
           to="/config/calendar"
-          className={`flex-1 text-center py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'calendar' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
-          }`}
+          className={`flex-1 text-center py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'calendar' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
+            }`}
         >
           {t('settings.tabs.calendar')}
         </Link>
@@ -408,8 +405,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
                         e.stopPropagation();
                         handleDeleteShift(shift.id);
                       }}
-                      className="p-2 text-slate-500 hover:text-red-400 transition"
+                      className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
                       title={t('settings.shifts.delete')}
+                      aria-label={t('settings.shifts.delete')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -446,8 +444,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
                       <div className="text-slate-500 hover:text-slate-300 p-1 touch-none">
                         <GripVertical className="w-4 h-4" />
                       </div>
-                      <span className="text-xs font-bold text-slate-500 w-16">
-                        {t('settings.sequence.day')} {index + 1}:
+                      <span className="text-xs font-bold text-slate-500">
+                        {index + 1}
                       </span>
                       <div
                         className="w-3 h-3 rounded-full shrink-0"
@@ -462,9 +460,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
                         e.stopPropagation();
                         handleRemoveFromSequence(index);
                       }}
-                      className="text-xs text-red-400 hover:text-red-300 transition p-1"
+                      className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition flex items-center gap-1.5"
+                      title={t('settings.sequence.remove')}
+                      aria-label={t('settings.sequence.remove')}
                     >
-                      {t('settings.sequence.remove')}
+                      <Trash2 className="w-4 h-4" />
+                      <span className="hidden sm:inline text-xs">{t('settings.sequence.remove')}</span>
                     </button>
                   </Reorder.Item>
                 );

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Calendar, Settings, User, Globe } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { WelcomeLanding } from './WelcomeLanding';
+import { Logo } from './Logo';
 
 export const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { t, i18n } = useTranslation();
@@ -32,9 +33,7 @@ export const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ childre
             to="/plan/month"
             className="flex items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-xl transition hover:opacity-80 cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-              <Calendar className="w-5 h-5 text-white" />
-            </div>
+            <Logo className="w-9 h-9 drop-shadow-md" />
             <span className="font-bold text-lg text-white">{t('app.title')}</span>
           </Link>
 

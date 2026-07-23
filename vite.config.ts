@@ -12,22 +12,36 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Gestione Turni PWA',
-        short_name: 'TurniApp',
+        name: 'Shift Manager',
+        short_name: 'ShiftManager',
         description: 'Pianifica e sincronizza i tuoi turni di lavoro personali con Google Calendar',
         theme_color: '#020617',
         background_color: '#020617',
         display: 'standalone',
         icons: [
           {
-            src: '/pwa-192x192.png',
+            src: '/manifest-icon-192.maskable.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
-            src: '/pwa-512x512.png',
+            src: '/manifest-icon-192.maskable.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable'
+          },
+          {
+            src: '/manifest-icon-512.maskable.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/manifest-icon-512.maskable.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       }

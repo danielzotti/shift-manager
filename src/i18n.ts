@@ -5,7 +5,7 @@ const resources = {
   it: {
     translation: {
       app: {
-        title: 'Gestione Turni',
+        title: 'Shift Manager',
         tagline: 'Pianifica e sincronizza i tuoi turni personali su Google Calendar',
       },
       nav: {
@@ -60,7 +60,7 @@ const resources = {
           startTime: 'Ora Inizio',
           endTime: 'Ora Fine',
           allDay: 'Tutto il Giorno',
-          noEvent: 'Nessun Evento (Smontante)',
+          noEvent: 'Nessun evento da creare',
           color: 'Colore Visuale',
           actions: 'Azioni',
           edit: 'Modifica',
@@ -179,7 +179,7 @@ const resources = {
           startTime: 'Start Time',
           endTime: 'End Time',
           allDay: 'All Day',
-          noEvent: 'No Event (Off-day after night)',
+          noEvent: 'No event to be created',
           color: 'Visual Color',
           actions: 'Actions',
           edit: 'Edit',
