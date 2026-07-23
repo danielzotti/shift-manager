@@ -202,7 +202,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
             fromDate: deleteOption === 'from' || deleteOption === 'range' ? fromDate : undefined,
             toDate: deleteOption === 'until' || deleteOption === 'range' ? toDate : undefined,
           },
-          config.calendarName
+          config.calendarName,
+          (count) => {
+            setDeletedCount(count);
+          }
         );
         setDeletedCount(res.deletedCount);
         setDeleteSuccess(true);
@@ -495,6 +498,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
               )}
             </button>
 
+            {isDeleting && deletedCount !== null && deletedCount > 0 && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-300 rounded-xl text-xs font-semibold flex items-center justify-between animate-pulse">
+                <span>Eliminazione in corso...</span>
+                <span className="px-2.5 py-0.5 bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg text-xs font-bold">
+                  {deletedCount} {deletedCount === 1 ? 'evento eliminato' : 'eventi eliminati'}
+                </span>
+              </div>
+            )}
+
             {deleteError && (
               <div className="p-3 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-xs font-semibold flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -503,10 +515,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
             )}
 
             {deleteSuccess && (
-              <div className="p-3 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-semibold flex items-center gap-2">
-                <Check className="w-4 h-4 shrink-0" />
-                Operazione completata con successo sul calendario Google!
-                {deletedCount !== null && ` (${deletedCount} eventi eliminati)`}
+              <div className="p-3 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 animate-in fade-in duration-200">
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>Operazione completata con successo!</span>
+                </div>
+                {deletedCount !== null && (
+                  <span className="px-3 py-1 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg text-xs font-extrabold whitespace-nowrap">
+                    {deletedCount} {deletedCount === 1 ? 'evento eliminato' : 'eventi eliminati'}
+                  </span>
+                )}
               </div>
             )}
           </div>

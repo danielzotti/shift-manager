@@ -247,6 +247,10 @@ export async function deleteMonthShiftEvents(
     const items = data.items || [];
 
     for (const item of items) {
+      if (item.summary === CONFIG_EVENT_SUMMARY || item.extendedProperties?.private?.type === 'config') {
+        continue;
+      }
+
       const isShiftManagerEvent =
         item.extendedProperties?.private?.appId === 'shift-manager' ||
         (item.description && item.description.includes(APP_ID_TAG));
@@ -381,7 +385,8 @@ export async function deleteGoogleCalendarEvents(
     fromDate?: string;
     toDate?: string;
   },
-  desiredSummary?: string
+  desiredSummary?: string,
+  onProgress?: (deletedCount: number) => void
 ): Promise<{ success: boolean; deletedCount: number }> {
   const calendarId = await getOrCreateShiftCalendar(accessToken, desiredSummary);
   const headers = {
@@ -418,6 +423,10 @@ export async function deleteGoogleCalendarEvents(
     const items = data.items || [];
 
     for (const item of items) {
+      if (item.summary === CONFIG_EVENT_SUMMARY || item.extendedProperties?.private?.type === 'config') {
+        continue;
+      }
+
       const isShiftManagerEvent =
         item.extendedProperties?.private?.appId === 'shift-manager' ||
         (item.description && item.description.includes(APP_ID_TAG));
@@ -429,6 +438,7 @@ export async function deleteGoogleCalendarEvents(
         );
         if (delRes.ok || delRes.status === 410 || delRes.status === 404) {
           deletedCount++;
+          if (onProgress) onProgress(deletedCount);
         } else {
           await handleResponseError(delRes, `Impossibile eliminare l'evento "${item.summary || item.id}" da Google Calendar.`);
         }
