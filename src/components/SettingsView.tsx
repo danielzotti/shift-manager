@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Trash2, Download, Upload, AlertTriangle, Check, Plus, GripVertical, Pencil, X, Loader2 } from 'lucide-react';
+import { Calendar, Trash2, Download, Upload, AlertTriangle, Check, Plus, GripVertical, Pencil, X, Loader2, RefreshCw } from 'lucide-react';
 import { Reorder } from 'framer-motion';
 import { useAuth } from './AuthContext';
 import { deleteGoogleCalendarEvents, fetchShiftCalendarSummary } from '../services/googleCalendarService';
@@ -43,6 +43,30 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
     }
   }, [activeTab, user?.accessToken]);
 
+  // Helper to generate a random hex color that is unused by existing shifts if possible
+  const getRandomUnusedColor = (existingShifts: ShiftType[]) => {
+    const presetPalette = [
+      '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
+      '#ec4899', '#06b6d4', '#84cc16', '#d97706', '#6366f1',
+      '#14b8a6', '#f43f5e', '#a855f7', '#0284c7', '#22c55e'
+    ];
+    const usedColors = new Set(existingShifts.map((s) => s.color.toLowerCase()));
+    const availablePresets = presetPalette.filter((c) => !usedColors.has(c.toLowerCase()));
+
+    if (availablePresets.length > 0) {
+      return availablePresets[Math.floor(Math.random() * availablePresets.length)];
+    }
+
+    // Generate random hex color if all presets are used
+    for (let i = 0; i < 20; i++) {
+      const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+      if (!usedColors.has(randomColor.toLowerCase())) {
+        return randomColor;
+      }
+    }
+    return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+  };
+
   // Edit shift modal state
   const [editingShift, setEditingShift] = useState<ShiftType | null>(null);
 
@@ -51,10 +75,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
     name: '',
     startTime: '08:00',
     endTime: '16:00',
-    color: '#3b82f6',
+    color: getRandomUnusedColor(config.shifts),
     isAllDay: false,
     isNoEvent: false,
   });
+
+  // Ensure default color is initialized to random unused color on mount
+  useEffect(() => {
+    setNewShift((prev) => ({ ...prev, color: getRandomUnusedColor(config.shifts) }));
+  }, []);
 
   const [isSavingName, setIsSavingName] = useState(false);
   const [saveNameSuccess, setSaveNameSuccess] = useState(false);
@@ -169,8 +198,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
   };
 
 
+  const handleRefreshNewColor = () => {
+    setNewShift((prev) => ({ ...prev, color: getRandomUnusedColor(config.shifts) }));
+  };
+
+  const handleRefreshEditColor = () => {
+    if (!editingShift) return;
+    const otherShifts = config.shifts.filter((s) => s.id !== editingShift.id);
+    setEditingShift({ ...editingShift, color: getRandomUnusedColor(otherShifts) });
+  };
+
   const handleAddShift = () => {
     if (!newShift.name) return;
+    const shiftColor = newShift.color || getRandomUnusedColor(config.shifts);
     const shift: ShiftType = {
       id: generateUUID(),
       name: newShift.name,
@@ -178,10 +218,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
       endTime: newShift.isAllDay || newShift.isNoEvent ? undefined : newShift.endTime,
       isAllDay: newShift.isAllDay,
       isNoEvent: newShift.isNoEvent,
-      color: newShift.color || '#3b82f6',
+      color: shiftColor,
     };
-    updateConfig({ shifts: [...config.shifts, shift] });
-    setNewShift({ name: '', startTime: '08:00', endTime: '16:00', color: '#3b82f6', isAllDay: false, isNoEvent: false });
+    const updatedShifts = [...config.shifts, shift];
+    updateConfig({ shifts: updatedShifts });
+    setNewShift({
+      name: '',
+      startTime: '08:00',
+      endTime: '16:00',
+      color: getRandomUnusedColor(updatedShifts),
+      isAllDay: false,
+      isNoEvent: false,
+    });
   };
 
   const handleSaveEditShift = () => {
@@ -465,7 +513,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
                     onChange={(e) => setNewShift({ ...newShift, color: e.target.value })}
                     className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
                   />
-                  <span className="text-xs font-mono text-slate-300">{newShift.color}</span>
+                  <span className="text-xs font-mono text-slate-300 flex-1">{newShift.color}</span>
+                  <button
+                    type="button"
+                    onClick={handleRefreshNewColor}
+                    title="Genera un colore casuale non usato"
+                    className="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-slate-900 rounded-lg transition"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
@@ -712,14 +768,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
                 <label className="block text-xs font-semibold text-slate-400 mb-1">
                   {t('settings.shifts.color')}
                 </label>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 h-[42px] px-3 bg-slate-950 border border-slate-800 rounded-xl">
                   <input
                     type="color"
                     value={editingShift.color}
                     onChange={(e) => setEditingShift({ ...editingShift, color: e.target.value })}
-                    className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                    className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
                   />
-                  <span className="text-xs font-mono text-slate-300">{editingShift.color}</span>
+                  <span className="text-xs font-mono text-slate-300 flex-1">{editingShift.color}</span>
+                  <button
+                    type="button"
+                    onClick={handleRefreshEditColor}
+                    title="Genera un colore casuale non usato"
+                    className="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-slate-900 rounded-lg transition"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
