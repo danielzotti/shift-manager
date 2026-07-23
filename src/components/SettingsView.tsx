@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext';
 import { deleteGoogleCalendarEvents, fetchShiftCalendarSummary } from '../services/googleCalendarService';
 import type { SequenceItem, ShiftType } from '../types/shift';
 import { generateUUID } from '../types/shift';
+import { ConfirmModal } from './ConfirmModal';
 
 interface SettingsViewProps {
   activeTab?: 'calendar' | 'shifts' | 'sequence';
@@ -26,6 +27,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [deletedCount, setDeletedCount] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
 
   // Load calendar name from Google Calendar on mount or activeTab change
   useEffect(() => {
@@ -169,7 +171,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
     }
   };
 
-  const handleDeleteEvents = async () => {
+  const handleDeleteEvents = () => {
     setDeleteError(null);
     setDeleteSuccess(false);
     setDeletedCount(null);
@@ -187,10 +189,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
       return;
     }
 
-    if (!confirm(t('settings.calendar.confirmDelete'))) {
-      return;
-    }
+    setShowDeleteConfirmModal(true);
+  };
 
+  const executeDeleteEvents = async () => {
+    setShowDeleteConfirmModal(false);
     setIsDeleting(true);
 
     try {
@@ -928,6 +931,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteConfirmModal}
+        title={t('settings.calendar.dangerZone')}
+        message={t('settings.calendar.confirmDelete')}
+        confirmText="Elimina Eventi"
+        cancelText="Annulla"
+        variant="danger"
+        onConfirm={executeDeleteEvents}
+        onCancel={() => setShowDeleteConfirmModal(false)}
+      />
     </div>
   );
 };

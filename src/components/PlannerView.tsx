@@ -6,6 +6,7 @@ import { useAuth } from './AuthContext';
 import type { DayShiftAssignment, ShiftType } from '../types/shift';
 import { generateMonthSequence, processShiftsForCalendar } from '../utils/shiftCalculator';
 import { syncEventsToGoogleCalendar } from '../services/googleCalendarService';
+import { ConfirmModal } from './ConfirmModal';
 
 interface PlannerViewProps {
   viewMode?: 'month' | 'list';
@@ -285,36 +286,16 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
       </div>
 
       {/* Sync Confirmation Modal */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">{t('planner.confirmSyncTitle')}</h3>
-                <p className="text-xs text-slate-400 mt-0.5">{t('planner.confirmSyncMessage')}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="px-4 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-800 text-slate-300 font-semibold text-xs transition cursor-pointer"
-              >
-                {t('planner.confirmSyncCancel')}
-              </button>
-              <button
-                onClick={handleConfirmSync}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs transition shadow-lg shadow-cyan-500/20 cursor-pointer"
-              >
-                {t('planner.confirmSyncConfirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        title={t('planner.confirmSyncTitle')}
+        message={t('planner.confirmSyncMessage')}
+        confirmText={t('planner.confirmSyncConfirm')}
+        cancelText={t('planner.confirmSyncCancel')}
+        variant="info"
+        onConfirm={handleConfirmSync}
+        onCancel={() => setShowConfirmModal(false)}
+      />
 
       {/* Sync Error Modal */}
       {syncErrorMsg && (
