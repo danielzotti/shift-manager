@@ -16,8 +16,8 @@ const resources = {
       auth: {
         loginGoogle: 'Accedi con Google',
         logout: 'Esci dall\'account',
-        welcomeTitle: 'Gestisci i tuoi turni di lavoro in semplicità',
-        welcomeSubtitle: 'Pianifica la tua sequenza mensile, personalizza i turni e sincronizza automaticamente con il tuo Google Calendar in un solo click.',
+        welcomeTitle: 'Shift Manager: Gestisci i tuoi turni di lavoro in semplicità',
+        welcomeSubtitle: 'Shift Manager è l\'applicazione web gratuita creata per pianificare la tua rotazione mensile dei turni di lavoro e sincronizzarli in modo sicuro e automatico sul tuo calendario personale Google Calendar.',
         feature1Title: 'Sequenza Automatica',
         feature1Desc: 'Imposta la tua rotazione (es. Giorno, Notte, Smontante, Libero) e calcola l\'intero mese con un click.',
         feature2Title: 'Google Calendar Sync',
@@ -26,7 +26,7 @@ const resources = {
         feature3Desc: 'I giorni consecutivi di Ferie o Libero vengono uniti automaticamente in un unico evento.',
         feature4Title: 'PWA Installabile',
         feature4Desc: 'Funziona su smartphone, tablet e desktop come un\'app nativa anche offline.',
-        requiresAuth: 'È richiesta l\'autenticazione con Google per gestire il calendario dei turni.',
+        requiresAuth: 'È richiesta l\'autenticazione con Google per sincronizzare il calendario di Shift Manager.',
       },
       settings: {
         title: 'Configurazione Turni e Calendario',
@@ -176,8 +176,8 @@ const resources = {
       auth: {
         loginGoogle: 'Sign in with Google',
         logout: 'Sign Out',
-        welcomeTitle: 'Manage your work shifts effortlessly',
-        welcomeSubtitle: 'Plan your monthly sequence, customize shift types, and sync directly to Google Calendar in one click.',
+        welcomeTitle: 'Shift Manager: Manage your work shifts effortlessly',
+        welcomeSubtitle: 'Shift Manager is a free web application designed to plan your monthly shift rotations and securely synchronize them directly with your personal Google Calendar.',
         feature1Title: 'Automated Rotation',
         feature1Desc: 'Set your rotation pattern (e.g. Day, Night, Post-Night, Off) and calculate the full month instantly.',
         feature2Title: 'Google Calendar Sync',
@@ -186,7 +186,7 @@ const resources = {
         feature3Desc: 'Consecutive full-day events (e.g., Vacation or Days Off) are merged into single multiday events.',
         feature4Title: 'Installable PWA',
         feature4Desc: 'Works smoothly on mobile, tablet, and desktop as a native app with offline support.',
-        requiresAuth: 'Google authentication is required to manage your shift calendar.',
+        requiresAuth: 'Google authentication is required to synchronize your Shift Manager calendar.',
       },
       settings: {
         title: 'Shift & Calendar Configuration',

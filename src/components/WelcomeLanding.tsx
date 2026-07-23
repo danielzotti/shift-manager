@@ -18,8 +18,8 @@ export const WelcomeLanding: React.FC = () => {
       <header className="max-w-6xl w-full mx-auto flex justify-between items-center py-4">
         <div className="flex items-center gap-3">
           <Logo className="w-10 h-10 drop-shadow-md" />
-          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-cyan-400">
-            {t('app.title')}
+          <span className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-200 to-cyan-400 tracking-tight">
+            Shift Manager
           </span>
         </div>
         <button
