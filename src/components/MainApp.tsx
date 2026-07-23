@@ -25,12 +25,15 @@ export const MainApp: React.FC = () => {
       {/* Top Header */}
       <header className="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <button
+            onClick={() => setCurrentTab('planner')}
+            className="flex items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-xl transition hover:opacity-80 cursor-pointer"
+          >
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
               <Calendar className="w-5 h-5 text-white" />
             </div>
             <span className="font-bold text-lg text-white">{t('app.title')}</span>
-          </div>
+          </button>
 
           <button
             onClick={toggleLanguage}

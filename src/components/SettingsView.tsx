@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Trash2, Download, Upload, AlertTriangle, Check, Plus } from 'lucide-react';
+import { Calendar, Trash2, Download, Upload, AlertTriangle, Check, Plus, GripVertical, Pencil, X } from 'lucide-react';
+import { Reorder } from 'framer-motion';
 import { useAuth } from './AuthContext';
-import type { ShiftType } from '../types/shift';
+import type { SequenceItem, ShiftType } from '../types/shift';
+import { generateUUID } from '../types/shift';
 
 export const SettingsView: React.FC = () => {
   const { t } = useTranslation();
   const { config, updateConfig } = useAuth();
-  const [activeTab, setActiveTab] = useState<'calendar' | 'shifts' | 'sequence'>('calendar');
+  const [activeTab, setActiveTab] = useState<'calendar' | 'shifts' | 'sequence'>('shifts');
 
   // Local tab states
   const [calName, setCalName] = useState(config.calendarName);
@@ -15,6 +17,9 @@ export const SettingsView: React.FC = () => {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [deleteSuccess, setDeleteSuccess] = useState(false);
+
+  // Edit shift modal state
+  const [editingShift, setEditingShift] = useState<ShiftType | null>(null);
 
   // New shift form state
   const [newShift, setNewShift] = useState<Partial<ShiftType>>({
@@ -68,7 +73,7 @@ export const SettingsView: React.FC = () => {
   const handleAddShift = () => {
     if (!newShift.name) return;
     const shift: ShiftType = {
-      id: 'shift_' + Date.now(),
+      id: generateUUID(),
       name: newShift.name,
       startTime: newShift.isAllDay || newShift.isNoEvent ? undefined : newShift.startTime,
       endTime: newShift.isAllDay || newShift.isNoEvent ? undefined : newShift.endTime,
@@ -80,21 +85,41 @@ export const SettingsView: React.FC = () => {
     setNewShift({ name: '', startTime: '08:00', endTime: '16:00', color: '#3b82f6', isAllDay: false, isNoEvent: false });
   };
 
+  const handleSaveEditShift = () => {
+    if (!editingShift || !editingShift.name) return;
+    const updatedShifts = config.shifts.map((s) =>
+      s.id === editingShift.id
+        ? {
+          ...editingShift,
+          startTime: editingShift.isAllDay || editingShift.isNoEvent ? undefined : editingShift.startTime || '08:00',
+          endTime: editingShift.isAllDay || editingShift.isNoEvent ? undefined : editingShift.endTime || '16:00',
+        }
+        : s
+    );
+    updateConfig({ shifts: updatedShifts });
+    setEditingShift(null);
+  };
+
   const handleDeleteShift = (id: string) => {
     updateConfig({
       shifts: config.shifts.filter((s) => s.id !== id),
-      sequence: config.sequence.filter((sId) => sId !== id),
+      sequence: config.sequence.filter((sItem) => sItem.shiftId !== id),
     });
   };
 
   const handleAddToSequence = (shiftId: string) => {
-    updateConfig({ sequence: [...config.sequence, shiftId] });
+    const newItem: SequenceItem = { id: generateUUID(), shiftId };
+    updateConfig({ sequence: [...config.sequence, newItem] });
   };
 
   const handleRemoveFromSequence = (index: number) => {
     const nextSeq = [...config.sequence];
     nextSeq.splice(index, 1);
     updateConfig({ sequence: nextSeq });
+  };
+
+  const handleReorderSequence = (newSequence: SequenceItem[]) => {
+    updateConfig({ sequence: newSequence });
   };
 
   return (
@@ -106,28 +131,25 @@ export const SettingsView: React.FC = () => {
       {/* Tabs Switcher */}
       <div className="flex bg-slate-900/80 p-1.5 rounded-xl border border-slate-800">
         <button
-          onClick={() => setActiveTab('calendar')}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'calendar' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          {t('settings.tabs.calendar')}
-        </button>
-        <button
           onClick={() => setActiveTab('shifts')}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'shifts' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
-          }`}
+          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'shifts' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
+            }`}
         >
           {t('settings.tabs.shifts')}
         </button>
         <button
           onClick={() => setActiveTab('sequence')}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-            activeTab === 'sequence' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
-          }`}
+          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'sequence' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
+            }`}
         >
           {t('settings.tabs.sequence')}
+        </button>
+        <button
+          onClick={() => setActiveTab('calendar')}
+          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'calendar' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
+            }`}
+        >
+          {t('settings.tabs.calendar')}
         </button>
       </div>
 
@@ -334,35 +356,57 @@ export const SettingsView: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-slate-200">{t('settings.shifts.title')}</h3>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h3 className="text-lg font-bold text-slate-200">{t('settings.shifts.title')}</h3>
+              <span className="text-xs text-slate-400">{t('settings.shifts.clickToEdit')}</span>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {config.shifts.map((shift) => (
                 <div
                   key={shift.id}
-                  className="p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex justify-between items-center"
+                  onClick={() => setEditingShift({ ...shift })}
+                  className="p-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-800/60 hover:border-cyan-500/50 transition cursor-pointer flex justify-between items-center group"
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-4 h-4 rounded-full"
+                      className="w-4 h-4 rounded-full shrink-0"
                       style={{ backgroundColor: shift.color }}
                     />
                     <div>
-                      <h4 className="font-bold text-white text-sm">{shift.name}</h4>
+                      <h4 className="font-bold text-white text-sm flex items-center gap-1.5">
+                        {shift.name}
+                      </h4>
                       <p className="text-xs text-slate-400">
                         {shift.isNoEvent
                           ? t('settings.shifts.noEvent')
                           : shift.isAllDay
-                          ? t('settings.shifts.allDay')
-                          : `${shift.startTime} - ${shift.endTime}`}
+                            ? t('settings.shifts.allDay')
+                            : `${shift.startTime} - ${shift.endTime}`}
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleDeleteShift(shift.id)}
-                    className="p-2 text-slate-500 hover:text-red-400 transition"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingShift({ ...shift });
+                      }}
+                      className="p-2 text-slate-400 hover:text-cyan-400 transition"
+                      title={t('settings.shifts.edit')}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteShift(shift.id);
+                      }}
+                      className="p-2 text-slate-500 hover:text-red-400 transition"
+                      title={t('settings.shifts.delete')}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -377,21 +421,29 @@ export const SettingsView: React.FC = () => {
             <h3 className="text-lg font-bold text-slate-200">{t('settings.sequence.title')}</h3>
             <p className="text-sm text-slate-400">{t('settings.sequence.desc')}</p>
 
-            {/* Sequence Display */}
-            <div className="space-y-2">
-              {config.sequence.map((shiftId, index) => {
-                const shift = config.shifts.find((s) => s.id === shiftId);
+            <Reorder.Group
+              axis="y"
+              values={config.sequence}
+              onReorder={handleReorderSequence}
+              className="space-y-2"
+            >
+              {config.sequence.map((item, index) => {
+                const shift = config.shifts.find((s) => s.id === item.shiftId);
                 return (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 rounded-xl border border-slate-800 bg-slate-950"
+                  <Reorder.Item
+                    key={item.id}
+                    value={item}
+                    className="flex items-center justify-between p-3 rounded-xl border border-slate-800 bg-slate-950 cursor-grab active:cursor-grabbing select-none"
                   >
                     <div className="flex items-center gap-3">
+                      <div className="text-slate-500 hover:text-slate-300 p-1 touch-none">
+                        <GripVertical className="w-4 h-4" />
+                      </div>
                       <span className="text-xs font-bold text-slate-500 w-16">
                         {t('settings.sequence.day')} {index + 1}:
                       </span>
                       <div
-                        className="w-3 h-3 rounded-full"
+                        className="w-3 h-3 rounded-full shrink-0"
                         style={{ backgroundColor: shift?.color || '#94a3b8' }}
                       />
                       <span className="text-sm font-semibold text-white">
@@ -399,15 +451,18 @@ export const SettingsView: React.FC = () => {
                       </span>
                     </div>
                     <button
-                      onClick={() => handleRemoveFromSequence(index)}
-                      className="text-xs text-red-400 hover:text-red-300 transition"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveFromSequence(index);
+                      }}
+                      className="text-xs text-red-400 hover:text-red-300 transition p-1"
                     >
                       {t('settings.sequence.remove')}
                     </button>
-                  </div>
+                  </Reorder.Item>
                 );
               })}
-            </div>
+            </Reorder.Group>
 
             {/* Add to sequence */}
             <div className="pt-4 border-t border-slate-800">
@@ -426,6 +481,125 @@ export const SettingsView: React.FC = () => {
                   </button>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Shift Modal */}
+      {editingShift && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-lg space-y-5 shadow-2xl relative animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-cyan-400" />
+                {t('settings.shifts.editShift')}
+              </h3>
+              <button
+                onClick={() => setEditingShift(null)}
+                className="text-slate-400 hover:text-white transition p-1 rounded-lg hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">
+                  {t('settings.shifts.name')}
+                </label>
+                <input
+                  type="text"
+                  value={editingShift.name}
+                  onChange={(e) => setEditingShift({ ...editingShift, name: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">
+                  {t('settings.shifts.color')}
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={editingShift.color}
+                    onChange={(e) => setEditingShift({ ...editingShift, color: e.target.value })}
+                    className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                  />
+                  <span className="text-xs font-mono text-slate-300">{editingShift.color}</span>
+                </div>
+              </div>
+
+              <div className="sm:col-span-2 flex flex-wrap items-center gap-6 pt-1 text-xs text-slate-300">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!editingShift.isAllDay}
+                    onChange={(e) =>
+                      setEditingShift({
+                        ...editingShift,
+                        isAllDay: e.target.checked,
+                        isNoEvent: false,
+                      })
+                    }
+                    className="rounded bg-slate-950 border-slate-800 text-cyan-500 focus:ring-0"
+                  />
+                  {t('settings.shifts.allDay')}
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!editingShift.isNoEvent}
+                    onChange={(e) =>
+                      setEditingShift({
+                        ...editingShift,
+                        isNoEvent: e.target.checked,
+                        isAllDay: false,
+                      })
+                    }
+                    className="rounded bg-slate-950 border-slate-800 text-cyan-500 focus:ring-0"
+                  />
+                  {t('settings.shifts.noEvent')}
+                </label>
+              </div>
+
+              {!editingShift.isAllDay && !editingShift.isNoEvent && (
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="block text-xs font-semibold text-slate-400">Orario Turno</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="time"
+                      value={editingShift.startTime || '08:00'}
+                      onChange={(e) => setEditingShift({ ...editingShift, startTime: e.target.value })}
+                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
+                    />
+                    <span className="text-slate-500">-</span>
+                    <input
+                      type="time"
+                      value={editingShift.endTime || '16:00'}
+                      onChange={(e) => setEditingShift({ ...editingShift, endTime: e.target.value })}
+                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+              <button
+                onClick={() => setEditingShift(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-sm transition"
+              >
+                {t('settings.shifts.cancel')}
+              </button>
+              <button
+                onClick={handleSaveEditShift}
+                className="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-xl text-sm transition flex items-center gap-2"
+              >
+                <Check className="w-4 h-4" />
+                {t('settings.shifts.saveChanges')}
+              </button>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import type { DayShiftAssignment, ShiftType } from '../types/shift';
+import type { DayShiftAssignment, SequenceItem, ShiftType } from '../types/shift';
 
 export interface MergedCalendarEvent {
   title: string;
@@ -89,13 +89,15 @@ export function processShiftsForCalendar(
 export function generateMonthSequence(
   year: number,
   month: number, // 0-indexed (0 = Jan, 6 = Jul)
-  sequence: string[],
+  sequence: SequenceItem[],
   startShiftId: string
 ): DayShiftAssignment[] {
   const assignments: DayShiftAssignment[] = [];
+  if (!sequence || sequence.length === 0) return assignments;
+
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  let startIndex = sequence.indexOf(startShiftId);
+  let startIndex = sequence.findIndex(s => s.shiftId === startShiftId || s.id === startShiftId);
   if (startIndex === -1) startIndex = 0;
 
   for (let day = 1; day <= daysInMonth; day++) {
@@ -106,7 +108,7 @@ export function generateMonthSequence(
     const seqIndex = (startIndex + (day - 1)) % sequence.length;
     assignments.push({
       date: dateStr,
-      shiftTypeId: sequence[seqIndex]
+      shiftTypeId: sequence[seqIndex].shiftId
     });
   }
 

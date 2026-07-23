@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, RefreshCw, Save } from 'lucide-react';
+import { CheckCircle, RefreshCw, Save, Loader2, Calendar } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import type { DayShiftAssignment, ShiftType } from '../types/shift';
 import { generateMonthSequence, processShiftsForCalendar } from '../utils/shiftCalculator';
@@ -9,16 +9,40 @@ export const PlannerView: React.FC = () => {
   const { t } = useTranslation();
   const { config, draftAssignments, saveDraft, clearDraft } = useAuth();
 
+  const sequenceOptions = config.sequence.length > 0
+    ? config.sequence.map((item, index) => {
+        const shift = config.shifts.find((s) => s.id === item.shiftId);
+        return {
+          id: item.id,
+          shiftId: item.shiftId,
+          label: `${t('settings.sequence.day')} ${index + 1}: ${shift ? shift.name : 'Unknown'}`,
+        };
+      })
+    : config.shifts.map((s) => ({
+        id: s.id,
+        shiftId: s.id,
+        label: s.name,
+      }));
+
   const [selectedMonth, setSelectedMonth] = useState('2026-07'); // YYYY-MM
-  const [startShiftId, setStartShiftId] = useState(config.sequence[0] || config.shifts[0]?.id || 'giorno');
+  const [startShiftId, setStartShiftId] = useState(sequenceOptions[0]?.id || '');
   const [assignments, setAssignments] = useState<DayShiftAssignment[]>([]);
-  const [viewMode, setViewMode] = useState<'month' | 'week' | 'day' | 'list'>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'list'>('month');
   const [syncSuccess, setSyncSuccess] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Month parsing
   const [yearStr, monthStr] = selectedMonth.split('-');
   const year = parseInt(yearStr, 10);
   const month = parseInt(monthStr, 10) - 1; // 0-indexed
+
+  // Ensure startShiftId is valid when sequence changes
+  useEffect(() => {
+    if (sequenceOptions.length > 0 && !sequenceOptions.some((opt) => opt.id === startShiftId || opt.shiftId === startShiftId)) {
+      setStartShiftId(sequenceOptions[0].id);
+    }
+  }, [config.sequence, config.shifts]);
 
   // Load from draft or generate
   useEffect(() => {
@@ -41,19 +65,33 @@ export const PlannerView: React.FC = () => {
     saveDraft(selectedMonth, updated);
   };
 
-  const handleSyncToGoogle = () => {
-    // Map shift types for calculation
-    const shiftMap: Record<string, ShiftType> = {};
-    config.shifts.forEach((s) => {
-      shiftMap[s.id] = s;
-    });
+  const handleOpenSyncModal = () => {
+    setShowConfirmModal(true);
+  };
 
-    const mergedEvents = processShiftsForCalendar(assignments, shiftMap);
-    console.log('Events to sync to Google Calendar:', mergedEvents);
+  const handleConfirmSync = async () => {
+    setShowConfirmModal(false);
+    setIsSyncing(true);
 
-    setSyncSuccess(true);
-    clearDraft(selectedMonth);
-    setTimeout(() => setSyncSuccess(false), 4000);
+    try {
+      // Map shift types for calculation
+      const shiftMap: Record<string, ShiftType> = {};
+      config.shifts.forEach((s) => {
+        shiftMap[s.id] = s;
+      });
+
+      const mergedEvents = processShiftsForCalendar(assignments, shiftMap);
+      console.log('Events to sync to Google Calendar:', mergedEvents);
+
+      // Simulate network request saving events to Google Calendar
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      setSyncSuccess(true);
+      clearDraft(selectedMonth);
+      setTimeout(() => setSyncSuccess(false), 4000);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const shiftsMap = config.shifts.reduce((acc, s) => {
@@ -67,7 +105,7 @@ export const PlannerView: React.FC = () => {
         <h2 className="text-2xl font-extrabold text-white tracking-tight">{t('planner.title')}</h2>
 
         <div className="flex items-center gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
-          {(['month', 'week', 'day', 'list'] as const).map((mode) => (
+          {(['month', 'list'] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => setViewMode(mode)}
@@ -105,9 +143,9 @@ export const PlannerView: React.FC = () => {
               onChange={(e) => setStartShiftId(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
             >
-              {config.shifts.map((shift) => (
-                <option key={shift.id} value={shift.id}>
-                  {shift.name}
+              {sequenceOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
                 </option>
               ))}
             </select>
@@ -124,11 +162,25 @@ export const PlannerView: React.FC = () => {
           </button>
 
           <button
-            onClick={handleSyncToGoogle}
-            className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl text-sm transition flex items-center gap-2 shadow-lg shadow-cyan-500/20"
+            onClick={handleOpenSyncModal}
+            disabled={isSyncing}
+            className={`px-6 py-2.5 font-bold rounded-xl text-sm transition flex items-center gap-2 shadow-lg ${
+              isSyncing
+                ? 'bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-700'
+                : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/20'
+            }`}
           >
-            <Save className="w-4 h-4" />
-            {t('planner.syncGoogle')}
+            {isSyncing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t('planner.syncing')}
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                {t('planner.syncGoogle')}
+              </>
+            )}
           </button>
         </div>
 
@@ -140,60 +192,161 @@ export const PlannerView: React.FC = () => {
         )}
       </div>
 
-      {/* Calendar Grid / Views */}
-      {viewMode === 'month' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {assignments.map((item) => {
-            const shift = item.shiftTypeId ? shiftsMap[item.shiftTypeId] : null;
-            const dateObj = new Date(item.date);
-            const dayNum = dateObj.getDate();
-            const dayName = dateObj.toLocaleDateString('it-IT', { weekday: 'short' });
-
-            return (
-              <div
-                key={item.date}
-                className="p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between gap-3 hover:border-slate-700 transition"
-              >
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-400 uppercase">
-                    {dayName} {dayNum}
-                  </span>
-                  {shift && (
-                    <div
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: shift.color }}
-                    />
-                  )}
-                </div>
-
-                <div className="my-1">
-                  {shift ? (
-                    <div className="font-bold text-white text-base flex items-center gap-2">
-                      <span>{shift.name}</span>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-slate-600 italic">{t('planner.noShift')}</span>
-                  )}
-                </div>
-
-                {/* Quick Shift Selector */}
-                <select
-                  value={item.shiftTypeId || ''}
-                  onChange={(e) => handleShiftChange(item.date, e.target.value || null)}
-                  className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-300 focus:outline-none focus:border-cyan-500"
-                >
-                  <option value="">{t('planner.noShift')}</option>
-                  {config.shifts.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
+      {/* Sync Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
+                <Calendar className="w-5 h-5" />
               </div>
-            );
-          })}
+              <div>
+                <h3 className="text-lg font-bold text-white">{t('planner.confirmSyncTitle')}</h3>
+                <p className="text-xs text-slate-400 mt-0.5">{t('planner.confirmSyncMessage')}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-800 text-slate-300 font-semibold text-xs transition cursor-pointer"
+              >
+                {t('planner.confirmSyncCancel')}
+              </button>
+              <button
+                onClick={handleConfirmSync}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs transition shadow-lg shadow-cyan-500/20 cursor-pointer"
+              >
+                {t('planner.confirmSyncConfirm')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
+
+      {/* Month View Grid */}
+      {viewMode === 'month' && (() => {
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7; // 0 = Monday, 6 = Sunday
+        const prevMonthDays = new Date(year, month, 0).getDate();
+
+        const gridDays: Array<{
+          dateStr: string;
+          dayNum: number;
+          isCurrentMonth: boolean;
+          assignment?: DayShiftAssignment;
+        }> = [];
+
+        // Previous month padding days
+        for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+          gridDays.push({
+            dateStr: `prev-${prevMonthDays - i}`,
+            dayNum: prevMonthDays - i,
+            isCurrentMonth: false,
+          });
+        }
+
+        // Current month days
+        assignments.forEach((item) => {
+          const dayNum = parseInt(item.date.split('-')[2], 10);
+          gridDays.push({
+            dateStr: item.date,
+            dayNum,
+            isCurrentMonth: true,
+            assignment: item,
+          });
+        });
+
+        // Next month padding days to complete grid rows (multiples of 7)
+        const totalGridCells = Math.ceil(gridDays.length / 7) * 7;
+        const nextMonthPadding = totalGridCells - gridDays.length;
+        for (let i = 1; i <= nextMonthPadding; i++) {
+          gridDays.push({
+            dateStr: `next-${i}`,
+            dayNum: i,
+            isCurrentMonth: false,
+          });
+        }
+
+        const weekDays = ['L', 'M', 'M', 'G', 'V', 'S', 'D'];
+
+        return (
+          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl space-y-4">
+            {/* Weekday Headers */}
+            <div className="grid grid-cols-7 text-center">
+              {weekDays.map((d, idx) => (
+                <div key={idx} className="text-xs sm:text-sm font-bold text-slate-400 py-2">
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar Cells */}
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
+              {gridDays.map((cell, idx) => {
+                if (!cell.isCurrentMonth || !cell.assignment) {
+                  return (
+                    <div
+                      key={idx}
+                      className="min-h-[70px] sm:min-h-[90px] p-2 flex flex-col items-center justify-start text-slate-600 opacity-40 select-none"
+                    >
+                      <span className="text-sm sm:text-base font-semibold">{cell.dayNum}</span>
+                    </div>
+                  );
+                }
+
+                const item = cell.assignment;
+                const shift = item.shiftTypeId ? shiftsMap[item.shiftTypeId] : null;
+
+                return (
+                  <div
+                    key={item.date}
+                    className="min-h-[70px] sm:min-h-[90px] p-1.5 sm:p-2.5 rounded-2xl border border-slate-800/80 bg-slate-950/40 hover:bg-slate-900/80 hover:border-slate-700 transition flex flex-col items-center justify-between group relative"
+                  >
+                    {/* Day Number */}
+                    <span className="text-sm sm:text-base font-bold text-slate-200 leading-none">
+                      {cell.dayNum}
+                    </span>
+
+                    {/* Shift Dot & Name */}
+                    <div className="flex flex-col items-center justify-center gap-1 w-full my-auto">
+                      {shift ? (
+                        <>
+                          <div
+                            className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-sm"
+                            style={{ backgroundColor: shift.color }}
+                          />
+                          <span className="text-[10px] sm:text-xs font-semibold text-slate-300 tracking-tight text-center truncate max-w-full">
+                            <span className="sm:hidden">{shift.name.slice(0, 3)}</span>
+                            <span className="hidden sm:inline">{shift.name}</span>
+                          </span>
+                        </>
+                      ) : (
+                        <div className="h-4" />
+                      )}
+                    </div>
+
+                    {/* Quick Shift Selector on Click/Hover */}
+                    <select
+                      value={item.shiftTypeId || ''}
+                      onChange={(e) => handleShiftChange(item.date, e.target.value || null)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title={`${item.date}: ${shift ? shift.name : t('planner.noShift')}`}
+                    >
+                      <option value="">{t('planner.noShift')}</option>
+                      {config.shifts.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {viewMode === 'list' && (
         <div className="space-y-2">
@@ -230,12 +383,6 @@ export const PlannerView: React.FC = () => {
               </div>
             );
           })}
-        </div>
-      )}
-
-      {(viewMode === 'week' || viewMode === 'day') && (
-        <div className="p-8 text-center text-slate-500 rounded-2xl border border-slate-800 bg-slate-900/40">
-          Vista {viewMode.toUpperCase()} integrata nella griglia mese.
         </div>
       )}
     </div>

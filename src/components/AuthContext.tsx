@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { CalendarConfig, UserProfile } from '../types/shift';
-import { DEFAULT_SEQUENCE, DEFAULT_SHIFTS } from '../types/shift';
+import { DEFAULT_SEQUENCE, DEFAULT_SHIFTS, normalizeCalendarConfig } from '../types/shift';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -31,13 +31,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [config, setConfig] = useState<CalendarConfig>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(LOCAL_STORAGE_CONFIG_KEY);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        try {
+          return normalizeCalendarConfig(JSON.parse(saved));
+        } catch (e) {
+          // ignore parse error
+        }
+      }
     }
-    return {
-      calendarName: 'Turni di Lavoro',
-      shifts: DEFAULT_SHIFTS,
-      sequence: DEFAULT_SEQUENCE,
-    };
+    return normalizeCalendarConfig(null);
   });
 
   const [draftAssignments, setDraftAssignments] = useState<Record<string, any>>(() => {
@@ -50,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateConfig = (newConfig: Partial<CalendarConfig>) => {
     setConfig((prev) => {
-      const updated = { ...prev, ...newConfig };
+      const updated = normalizeCalendarConfig({ ...prev, ...newConfig });
       localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(updated));
       return updated;
     });
