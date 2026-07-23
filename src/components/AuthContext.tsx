@@ -2,10 +2,13 @@ import React, { createContext, useContext, useState } from 'react';
 import type { CalendarConfig, UserProfile } from '../types/shift';
 import { DEFAULT_SEQUENCE, DEFAULT_SHIFTS, normalizeCalendarConfig } from '../types/shift';
 
+import { requestGoogleLogin } from '../services/googleAuthService';
+
 interface AuthContextType {
   user: UserProfile | null;
   login: () => void;
   logout: () => void;
+  authError: string | null;
   config: CalendarConfig;
   updateConfig: (newConfig: Partial<CalendarConfig>) => void;
   draftAssignments: Record<string, any>; // local storage draft by month key
@@ -20,6 +23,7 @@ const LOCAL_STORAGE_CONFIG_KEY = 'shift_manager_config';
 const LOCAL_STORAGE_DRAFT_KEY = 'shift_manager_drafts';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [authError, setAuthError] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
@@ -59,15 +63,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = () => {
-    // Simulated Google OAuth login flow (or GIS integration placeholder)
-    const mockUser: UserProfile = {
-      name: 'Mario Rossi',
-      email: 'mario.rossi@gmail.com',
-      picture: 'https://lh3.googleusercontent.com/a/default-user=s96-c',
-      accessToken: 'mock_google_access_token_' + Date.now(),
-    };
-    setUser(mockUser);
-    localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(mockUser));
+    setAuthError(null);
+    requestGoogleLogin(
+      (loggedInUser) => {
+        setUser(loggedInUser);
+        localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(loggedInUser));
+      },
+      (error) => {
+        console.error('Google Auth Error:', error);
+        setAuthError(error?.message || 'Autenticazione con Google annullata o fallita.');
+      }
+    );
   };
 
   const logout = () => {
@@ -98,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         login,
         logout,
+        authError,
         config,
         updateConfig,
         draftAssignments,

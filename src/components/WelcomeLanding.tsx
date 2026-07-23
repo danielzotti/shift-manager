@@ -6,7 +6,7 @@ import { Logo } from './Logo';
 
 export const WelcomeLanding: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { login } = useAuth();
+  const { login, authError } = useAuth();
 
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === 'it' ? 'en' : 'it');
@@ -54,6 +54,12 @@ export const WelcomeLanding: React.FC = () => {
           <LogIn className="w-6 h-6" />
           <span>{t('auth.loginGoogle')}</span>
         </button>
+
+        {authError && (
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold max-w-md">
+            ⚠️ {authError}
+          </div>
+        )}
 
         <p className="text-xs text-slate-500 max-w-md">
           🔒 {t('auth.requiresAuth')}

@@ -5,6 +5,7 @@ import { CheckCircle, RefreshCw, Save, Loader2, Calendar } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import type { DayShiftAssignment, ShiftType } from '../types/shift';
 import { generateMonthSequence, processShiftsForCalendar } from '../utils/shiftCalculator';
+import { syncEventsToGoogleCalendar } from '../services/googleCalendarService';
 
 interface PlannerViewProps {
   viewMode?: 'month' | 'list';
@@ -12,7 +13,7 @@ interface PlannerViewProps {
 
 export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) => {
   const { t, i18n } = useTranslation();
-  const { config, draftAssignments, saveDraft, clearDraft } = useAuth();
+  const { user, config, draftAssignments, saveDraft, clearDraft } = useAuth();
 
   const sequenceOptions = config.sequence.length > 0
     ? config.sequence.map((item, index) => {
@@ -85,14 +86,19 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
       });
 
       const mergedEvents = processShiftsForCalendar(assignments, shiftMap);
-      console.log('Events to sync to Google Calendar:', mergedEvents);
 
-      // Simulate network request saving events to Google Calendar
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      if (user?.accessToken) {
+        await syncEventsToGoogleCalendar(user.accessToken, mergedEvents);
+      } else {
+        console.log('No accessToken found, simulation mode:', mergedEvents);
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
 
       setSyncSuccess(true);
       clearDraft(selectedMonth);
       setTimeout(() => setSyncSuccess(false), 4000);
+    } catch (err) {
+      console.error('Sync failed:', err);
     } finally {
       setIsSyncing(false);
     }
