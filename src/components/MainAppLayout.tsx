@@ -12,7 +12,9 @@ export const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ childre
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
-  if (!user) {
+  const isPublicPath = currentPath === '/privacy' || currentPath === '/terms';
+
+  if (!user && !isPublicPath) {
     return <WelcomeLanding />;
   }
 
@@ -67,40 +69,52 @@ export const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ childre
         {children}
       </main>
 
-      {/* Bottom Navigation Bar for Mobile & Desktop */}
-      <nav className="sticky bottom-0 z-50 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 py-2 px-4">
-        <div className="max-w-md mx-auto flex justify-around items-center">
-          <Link
-            to="/plan/month"
-            className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition ${
-              isPlanActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            <Calendar className="w-5 h-5" />
-            <span className="text-[11px]">{t('nav.planner')}</span>
-          </Link>
+      {/* Bottom Navigation Bar for Mobile & Desktop (Only when logged in) */}
+      {user ? (
+        <nav className="sticky bottom-0 z-50 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 py-2 px-4">
+          <div className="max-w-md mx-auto flex justify-around items-center">
+            <Link
+              to="/plan/month"
+              className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition ${
+                isPlanActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Calendar className="w-5 h-5" />
+              <span className="text-[11px]">{t('nav.planner')}</span>
+            </Link>
 
-          <Link
-            to="/config/shifts"
-            className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition ${
-              isConfigActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            <Settings className="w-5 h-5" />
-            <span className="text-[11px]">{t('nav.settings')}</span>
-          </Link>
+            <Link
+              to="/config/shifts"
+              className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition ${
+                isConfigActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Settings className="w-5 h-5" />
+              <span className="text-[11px]">{t('nav.settings')}</span>
+            </Link>
 
-          <Link
-            to="/profile"
-            className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition ${
-              isProfileActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            <User className="w-5 h-5" />
-            <span className="text-[11px]">{t('nav.profile')}</span>
-          </Link>
-        </div>
-      </nav>
+            <Link
+              to="/profile"
+              className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition ${
+                isProfileActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <User className="w-5 h-5" />
+              <span className="text-[11px]">{t('nav.profile')}</span>
+            </Link>
+          </div>
+        </nav>
+      ) : (
+        <footer className="py-4 border-t border-slate-800 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+          <span>Shift Manager PWA &copy; {new Date().getFullYear()}</span>
+          <span className="hidden sm:inline">•</span>
+          <div className="flex items-center gap-3">
+            <Link to="/privacy" className="hover:text-cyan-400 underline transition">{t('footer.privacy')}</Link>
+            <span>•</span>
+            <Link to="/terms" className="hover:text-cyan-400 underline transition">{t('footer.terms')}</Link>
+          </div>
+        </footer>
+      )}
     </div>
   );
 };
