@@ -7,7 +7,7 @@ import { requestGoogleLogin } from '../services/googleAuthService';
 interface AuthContextType {
   user: UserProfile | null;
   login: () => void;
-  logout: () => void;
+  logout: (reason?: string) => void;
   authError: string | null;
   config: CalendarConfig;
   updateConfig: (newConfig: Partial<CalendarConfig>) => void;
@@ -62,6 +62,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const logout = (reason?: string) => {
+    setUser(null);
+    localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
+    setAuthError(reason || null);
+  };
+
   const login = () => {
     setAuthError(null);
     requestGoogleLogin(
@@ -73,7 +79,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (loggedInUser.accessToken) {
           import('../services/googleCalendarService')
             .then(({ getOrCreateShiftCalendar }) => getOrCreateShiftCalendar(loggedInUser.accessToken))
-            .catch((err) => console.error('Failed to create or verify Shift Manager calendar on login:', err));
+            .catch((err) => {
+              console.error('Failed to create or verify Shift Manager calendar on login:', err);
+              if (err?.status === 401 || err?.isUnauthenticated) {
+                logout('Sessione di autenticazione scaduta o non valida. Effettua nuovamente il login con Google.');
+              }
+            });
         }
       },
       (error) => {
@@ -81,11 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAuthError(error?.message || 'Autenticazione con Google annullata o fallita.');
       }
     );
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
   };
 
   const saveDraft = (monthKey: string, data: any) => {

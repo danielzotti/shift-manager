@@ -13,7 +13,7 @@ interface PlannerViewProps {
 
 export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) => {
   const { t, i18n } = useTranslation();
-  const { user, config, draftAssignments, saveDraft, clearDraft } = useAuth();
+  const { user, logout, config, draftAssignments, saveDraft, clearDraft } = useAuth();
 
   const sequenceOptions = config.sequence.length > 0
     ? config.sequence.map((item, index) => {
@@ -148,6 +148,16 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
       setTimeout(() => setSyncSuccess(false), 5000);
     } catch (err: any) {
       console.error('Sync failed:', err);
+      if (
+        err?.status === 401 ||
+        err?.isUnauthenticated ||
+        err?.message?.includes('UNAUTHENTICATED') ||
+        err?.message?.includes('Invalid Credentials') ||
+        err?.message?.includes('OAuth 2 access token')
+      ) {
+        logout('Sessione di autenticazione scaduta o non valida. Effettua nuovamente il login con Google.');
+        return;
+      }
       setSyncErrorMsg(err?.message || 'Si è verificato un errore durante la sincronizzazione con Google Calendar.');
     } finally {
       setIsSyncing(false);

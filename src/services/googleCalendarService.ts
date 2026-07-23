@@ -3,6 +3,23 @@ import type { MergedCalendarEvent } from '../utils/shiftCalculator';
 export const APP_ID_TAG = '[APP_ID: shift-manager]';
 export const DEFAULT_CALENDAR_SUMMARY = 'Shift Manager';
 
+async function handleResponseError(res: Response, defaultMessage: string): Promise<never> {
+  const errJson = await res.json().catch(() => ({}));
+  if (
+    res.status === 401 ||
+    errJson?.error?.code === 401 ||
+    errJson?.error?.status === 'UNAUTHENTICATED' ||
+    errJson?.error?.message?.includes('UNAUTHENTICATED') ||
+    errJson?.error?.errors?.some((e: any) => e.reason === 'authError' || e.message === 'Invalid Credentials')
+  ) {
+    const authErr = new Error('Sessione Google non autenticata o scaduta. Effettua nuovamente il login.');
+    (authErr as any).status = 401;
+    (authErr as any).isUnauthenticated = true;
+    throw authErr;
+  }
+  throw new Error(errJson?.error?.message || defaultMessage);
+}
+
 export async function fetchShiftCalendarSummary(accessToken: string): Promise<string | null> {
   const headers = {
     Authorization: `Bearer ${accessToken}`,
@@ -16,6 +33,10 @@ export async function fetchShiftCalendarSummary(accessToken: string): Promise<st
     if (existing && existing.summary) {
       return existing.summary;
     }
+    return null;
+  }
+  if (listRes.status === 401) {
+    await handleResponseError(listRes, 'Non autenticato');
   }
   return null;
 }
@@ -48,13 +69,13 @@ export async function getOrCreateShiftCalendar(accessToken: string, desiredSumma
           body: JSON.stringify({ summary: desiredSummary }),
         });
         if (!patchRes.ok) {
-          const errData = await patchRes.json().catch(() => ({}));
-          console.error('Failed to update calendar summary:', errData);
-          throw new Error(errData?.error?.message || 'Permessi insufficienti per modificare il calendario.');
+          await handleResponseError(patchRes, 'Permessi insufficienti per modificare il calendario.');
         }
       }
       return existing.id;
     }
+  } else {
+    await handleResponseError(listRes, 'Impossibile accedere ai calendari Google.');
   }
 
   // 2. Create calendar if not found
@@ -73,8 +94,7 @@ export async function getOrCreateShiftCalendar(accessToken: string, desiredSumma
     return created.id;
   }
 
-  const errData = await createRes.json().catch(() => ({}));
-  throw new Error(errData?.error?.message || 'Impossibile creare il calendario dedicato per Shift Manager su Google Calendar.');
+  await handleResponseError(createRes, 'Impossibile creare il calendario dedicato per Shift Manager su Google Calendar.');
 }
 
 export type SyncProgressHandler = (status: {
@@ -118,8 +138,7 @@ export async function deleteMonthShiftEvents(
 
     const res = await fetch(url, { headers });
     if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson?.error?.message || `Impossibile recuperare gli eventi da Google Calendar (HTTP ${res.status})`);
+      await handleResponseError(res, `Impossibile recuperare gli eventi da Google Calendar (HTTP ${res.status})`);
     }
 
     const data = await res.json();
@@ -141,8 +160,7 @@ export async function deleteMonthShiftEvents(
           { method: 'DELETE', headers }
         );
         if (!delRes.ok && delRes.status !== 404 && delRes.status !== 410) {
-          const errJson = await delRes.json().catch(() => ({}));
-          throw new Error(errJson?.error?.message || `Impossibile eliminare l'evento da Google Calendar (HTTP ${delRes.status})`);
+          await handleResponseError(delRes, `Impossibile eliminare l'evento da Google Calendar (HTTP ${delRes.status})`);
         }
         deletedCount++;
         if (dateStr && onProgress) {
@@ -244,9 +262,7 @@ export async function syncEventsToGoogleCalendar(
         await new Promise((resolve) => setTimeout(resolve, 80));
       }
     } else {
-      const errJson = await res.json().catch(() => ({}));
-      console.error('Failed to create event in Google Calendar:', errJson);
-      throw new Error(errJson?.error?.message || `Errore durante la creazione dell'evento "${event.title}" su Google Calendar (HTTP ${res.status})`);
+      await handleResponseError(res, `Errore durante la creazione dell'evento "${event.title}" su Google Calendar (HTTP ${res.status})`);
     }
   }
 
@@ -293,9 +309,7 @@ export async function deleteGoogleCalendarEvents(
 
     const listRes = await fetch(url, { headers });
     if (!listRes.ok) {
-      const errJson = await listRes.json();
-      console.error('Failed to list events for deletion:', errJson);
-      throw new Error(errJson.error?.message || 'Failed to list Google Calendar events');
+      await handleResponseError(listRes, 'Failed to list Google Calendar events');
     }
 
     const data = await listRes.json();
@@ -314,6 +328,9 @@ export async function deleteGoogleCalendarEvents(
         if (delRes.ok || delRes.status === 410 || delRes.status === 404) {
           deletedCount++;
         } else {
+          if (delRes.status === 401) {
+            await handleResponseError(delRes, 'Sessione scaduta');
+          }
           console.error(`Failed to delete event ${item.id}:`, await delRes.text());
         }
       }

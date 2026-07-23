@@ -14,7 +14,7 @@ interface SettingsViewProps {
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts' }) => {
   const { t } = useTranslation();
-  const { user, config, updateConfig } = useAuth();
+  const { user, logout, config, updateConfig } = useAuth();
 
   // Local tab states
   const [calName, setCalName] = useState(config.calendarName);
@@ -109,6 +109,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
         setTimeout(() => setSaveNameSuccess(false), 3000);
       } catch (err: any) {
         console.error('Failed to update Google Calendar name:', err);
+        if (
+          err?.status === 401 ||
+          err?.isUnauthenticated ||
+          err?.message?.includes('UNAUTHENTICATED') ||
+          err?.message?.includes('Invalid Credentials') ||
+          err?.message?.includes('OAuth 2 access token')
+        ) {
+          logout('Sessione di autenticazione scaduta o non valida. Effettua nuovamente il login con Google.');
+          return;
+        }
         setSaveNameError(err.message || 'Impossibile aggiornare il nome del calendario su Google.');
       } finally {
         setIsSavingName(false);
@@ -191,6 +201,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
       }
     } catch (err: any) {
       console.error('Delete events failed:', err);
+      if (
+        err?.status === 401 ||
+        err?.isUnauthenticated ||
+        err?.message?.includes('UNAUTHENTICATED') ||
+        err?.message?.includes('Invalid Credentials') ||
+        err?.message?.includes('OAuth 2 access token')
+      ) {
+        logout('Sessione di autenticazione scaduta o non valida. Effettua nuovamente il login con Google.');
+        return;
+      }
       setDeleteError(err.message || 'Errore durante l\'eliminazione degli eventi da Google Calendar.');
     } finally {
       setIsDeleting(false);
