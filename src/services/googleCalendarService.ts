@@ -77,14 +77,22 @@ export async function getOrCreateShiftCalendar(accessToken: string, desiredSumma
   throw new Error(errData?.error?.message || 'Impossibile creare il calendario dedicato per Shift Manager su Google Calendar.');
 }
 
+export type SyncProgressHandler = (status: {
+  date: string;
+  type: 'deleting' | 'deleted' | 'creating' | 'created';
+  deletedCount?: number;
+  createdCount?: number;
+}) => void;
+
 /**
  * Deletes all events created by Shift Manager for a specific month (YYYY-MM).
  */
 export async function deleteMonthShiftEvents(
   accessToken: string,
   calendarId: string,
-  yearMonth: string // e.g. "2026-07"
-): Promise<void> {
+  yearMonth: string, // e.g. "2026-07"
+  onProgress?: SyncProgressHandler
+): Promise<number> {
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     'Content-Type': 'application/json',
@@ -100,6 +108,7 @@ export async function deleteMonthShiftEvents(
   const timeMax = new Date(year, month - 1, lastDay, 23, 59, 59, 999).toISOString();
 
   let pageToken: string | undefined = undefined;
+  let deletedCount = 0;
 
   do {
     let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true`;
@@ -108,7 +117,10 @@ export async function deleteMonthShiftEvents(
     }
 
     const res = await fetch(url, { headers });
-    if (!res.ok) break;
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson?.error?.message || `Impossibile recuperare gli eventi da Google Calendar (HTTP ${res.status})`);
+    }
 
     const data = await res.json();
     const items = data.items || [];
@@ -119,15 +131,31 @@ export async function deleteMonthShiftEvents(
         (item.description && item.description.includes(APP_ID_TAG));
 
       if (isShiftManagerEvent && item.id) {
-        await fetch(
+        const dateStr = item.start?.date || (item.start?.dateTime ? item.start.dateTime.substring(0, 10) : null);
+        if (dateStr && onProgress) {
+          onProgress({ date: dateStr, type: 'deleting', deletedCount });
+        }
+
+        const delRes = await fetch(
           `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(item.id)}`,
           { method: 'DELETE', headers }
         );
+        if (!delRes.ok && delRes.status !== 404 && delRes.status !== 410) {
+          const errJson = await delRes.json().catch(() => ({}));
+          throw new Error(errJson?.error?.message || `Impossibile eliminare l'evento da Google Calendar (HTTP ${delRes.status})`);
+        }
+        deletedCount++;
+        if (dateStr && onProgress) {
+          onProgress({ date: dateStr, type: 'deleted', deletedCount });
+        }
+        await new Promise((resolve) => setTimeout(resolve, 80));
       }
     }
 
     pageToken = data.nextPageToken;
   } while (pageToken);
+
+  return deletedCount;
 }
 
 /**
@@ -138,28 +166,36 @@ export async function syncEventsToGoogleCalendar(
   accessToken: string,
   events: MergedCalendarEvent[],
   yearMonth?: string,
-  desiredSummary?: string
-): Promise<{ success: boolean; syncedCount: number; calendarId: string }> {
+  desiredSummary?: string,
+  onProgress?: SyncProgressHandler
+): Promise<{ success: boolean; syncedCount: number; deletedCount: number; calendarId: string }> {
   const calendarId = await getOrCreateShiftCalendar(accessToken, desiredSummary);
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     'Content-Type': 'application/json',
   };
 
+  let deletedCount = 0;
+
   // If a specific month is targeted, delete all Shift Manager events in that month first
   if (yearMonth) {
-    await deleteMonthShiftEvents(accessToken, calendarId, yearMonth);
+    deletedCount = await deleteMonthShiftEvents(accessToken, calendarId, yearMonth, onProgress);
   } else if (events.length > 0) {
     // Derive yearMonth from the first event if not explicitly supplied
     const sampleDate = events[0].startDate; // YYYY-MM-DD
     const ym = sampleDate.substring(0, 7);
-    await deleteMonthShiftEvents(accessToken, calendarId, ym);
+    deletedCount = await deleteMonthShiftEvents(accessToken, calendarId, ym, onProgress);
   }
 
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Rome';
-  let count = 0;
+  let createdCount = 0;
 
   for (const event of events) {
+    if (onProgress) {
+      onProgress({ date: event.startDate, type: 'creating', deletedCount, createdCount });
+      await new Promise((resolve) => setTimeout(resolve, 80));
+    }
+
     let body: any = {
       summary: event.title,
       description: APP_ID_TAG,
@@ -202,14 +238,19 @@ export async function syncEventsToGoogleCalendar(
     });
 
     if (res.ok) {
-      count++;
+      createdCount++;
+      if (onProgress) {
+        onProgress({ date: event.startDate, type: 'created', deletedCount, createdCount });
+        await new Promise((resolve) => setTimeout(resolve, 80));
+      }
     } else {
-      const errJson = await res.json();
+      const errJson = await res.json().catch(() => ({}));
       console.error('Failed to create event in Google Calendar:', errJson);
+      throw new Error(errJson?.error?.message || `Errore durante la creazione dell'evento "${event.title}" su Google Calendar (HTTP ${res.status})`);
     }
   }
 
-  return { success: true, syncedCount: count, calendarId };
+  return { success: true, syncedCount: createdCount, deletedCount, calendarId };
 }
 
 /**

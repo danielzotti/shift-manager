@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, RefreshCw, Save, Loader2, Calendar } from 'lucide-react';
+import { CheckCircle, RefreshCw, Save, Loader2, Calendar, AlertTriangle } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import type { DayShiftAssignment, ShiftType } from '../types/shift';
 import { generateMonthSequence, processShiftsForCalendar } from '../utils/shiftCalculator';
@@ -36,6 +36,9 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
   const [syncSuccess, setSyncSuccess] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncDayStates, setSyncDayStates] = useState<Record<string, 'deleting' | 'deleted' | 'creating' | 'created'>>({});
+  const [syncSummary, setSyncSummary] = useState<{ deleted: number; created: number } | null>(null);
+  const [syncErrorMsg, setSyncErrorMsg] = useState<string | null>(null);
 
   // Month parsing
   const [yearStr, monthStr] = selectedMonth.split('-');
@@ -77,6 +80,9 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
   const handleConfirmSync = async () => {
     setShowConfirmModal(false);
     setIsSyncing(true);
+    setSyncErrorMsg(null);
+    setSyncDayStates({});
+    setSyncSummary({ deleted: 0, created: 0 });
 
     try {
       // Map shift types for calculation
@@ -88,17 +94,61 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
       const mergedEvents = processShiftsForCalendar(assignments, shiftMap);
 
       if (user?.accessToken) {
-        await syncEventsToGoogleCalendar(user.accessToken, mergedEvents, selectedMonth, config.calendarSummary);
+        let deletedCounter = 0;
+        let createdCounter = 0;
+
+        await syncEventsToGoogleCalendar(
+          user.accessToken,
+          mergedEvents,
+          selectedMonth,
+          config.calendarSummary,
+          (progress) => {
+            if (progress.deletedCount !== undefined) deletedCounter = progress.deletedCount;
+            if (progress.createdCount !== undefined) createdCounter = progress.createdCount;
+
+            setSyncDayStates((prev) => ({
+              ...prev,
+              [progress.date]: progress.type,
+            }));
+            setSyncSummary({
+              deleted: deletedCounter,
+              created: createdCounter,
+            });
+          }
+        );
       } else {
-        console.log('No accessToken found, simulation mode:', mergedEvents);
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        console.log('No accessToken found, running animated simulation mode:', mergedEvents);
+        let deletedCounter = 0;
+        let createdCounter = 0;
+
+        // 1. Simulate Deletion pass for days with shifts
+        const daysWithShifts = assignments.filter((a) => a.shiftTypeId);
+        for (const item of daysWithShifts) {
+          setSyncDayStates((prev) => ({ ...prev, [item.date]: 'deleting' }));
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          setSyncDayStates((prev) => ({ ...prev, [item.date]: 'deleted' }));
+          deletedCounter++;
+          setSyncSummary({ deleted: deletedCounter, created: createdCounter });
+        }
+
+        // 2. Simulate Creation pass for merged events
+        for (const event of mergedEvents) {
+          setSyncDayStates((prev) => ({ ...prev, [event.startDate]: 'creating' }));
+          await new Promise((resolve) => setTimeout(resolve, 120));
+
+          setSyncDayStates((prev) => ({ ...prev, [event.startDate]: 'created' }));
+          createdCounter++;
+          setSyncSummary({ deleted: deletedCounter, created: createdCounter });
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
       }
 
       setSyncSuccess(true);
       clearDraft(selectedMonth);
-      setTimeout(() => setSyncSuccess(false), 4000);
-    } catch (err) {
+      setTimeout(() => setSyncSuccess(false), 5000);
+    } catch (err: any) {
       console.error('Sync failed:', err);
+      setSyncErrorMsg(err?.message || 'Si è verificato un errore durante la sincronizzazione con Google Calendar.');
     } finally {
       setIsSyncing(false);
     }
@@ -202,6 +252,26 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
             {t('planner.syncSuccess')}
           </div>
         )}
+
+        {/* Sync Live Summary Banner */}
+        {syncSummary && (
+          <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in duration-300">
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full ${isSyncing ? 'bg-cyan-400 animate-ping' : 'bg-emerald-400'}`} />
+              <span className="text-xs sm:text-sm font-bold text-slate-200">
+                {isSyncing ? t('planner.syncing') : t('planner.syncSuccess')}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 text-xs font-extrabold">
+              <span className="px-3 py-1 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg shadow-sm">
+                {t('planner.syncDeleted', { count: syncSummary.deleted })}
+              </span>
+              <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-lg shadow-sm">
+                {t('planner.syncCreated', { count: syncSummary.created })}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sync Confirmation Modal */}
@@ -230,6 +300,35 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
                 className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs transition shadow-lg shadow-cyan-500/20 cursor-pointer"
               >
                 {t('planner.confirmSyncConfirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sync Error Modal */}
+      {syncErrorMsg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-slate-900 p-6 shadow-2xl space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1 flex-1 min-w-0">
+                <h3 className="text-lg font-bold text-white">{t('planner.syncErrorTitle')}</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">{t('planner.syncErrorMessage')}</p>
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs font-mono text-red-300 break-words max-h-40 overflow-y-auto mt-2 select-text">
+                  {syncErrorMsg}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end pt-4 border-t border-slate-800">
+              <button
+                onClick={() => setSyncErrorMsg(null)}
+                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition cursor-pointer"
+              >
+                {t('planner.close')}
               </button>
             </div>
           </div>
@@ -309,19 +408,28 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
 
                 const item = cell.assignment;
                 const shift = item.shiftTypeId ? shiftsMap[item.shiftTypeId] : null;
+                const syncState = syncDayStates[item.date];
 
                 return (
                   <div
                     key={item.date}
-                    className="min-h-[70px] sm:min-h-[90px] p-1.5 sm:p-2.5 rounded-2xl border border-slate-800/80 bg-slate-950/40 hover:bg-slate-900/80 hover:border-slate-700 transition flex flex-col items-center justify-between group relative md:gap-2"
+                    className={`min-h-[70px] sm:min-h-[90px] p-1.5 sm:p-2.5 rounded-2xl border border-slate-800/80 bg-slate-950/40 hover:bg-slate-900/80 hover:border-slate-700 transition flex flex-col items-center justify-between group relative md:gap-2 ${
+                      syncState === 'deleting'
+                        ? 'sync-deleting-card'
+                        : syncState === 'creating'
+                          ? 'sync-creating-card'
+                          : syncState === 'created'
+                            ? 'sync-created-card'
+                            : ''
+                    }`}
                   >
                     {/* Day Number */}
-                    <span className="text-sm sm:text-base font-bold text-slate-200 leading-none">
+                    <span className="relative z-10 text-sm sm:text-base font-bold text-slate-200 leading-none">
                       {cell.dayNum}
                     </span>
 
                     {/* Shift Dot & Name */}
-                    <div className="flex flex-col items-center justify-center gap-1 sm:gap-2 w-full my-auto z-0 pointer-events-none">
+                    <div className="relative z-10 flex flex-col items-center justify-center gap-1 sm:gap-2 w-full my-auto pointer-events-none">
                       {shift ? (
                         <>
                           <div
@@ -342,7 +450,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
                     <select
                       value={item.shiftTypeId || ''}
                       onChange={(e) => handleShiftChange(item.date, e.target.value || null)}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20"
                       title={`${item.date}: ${shift ? shift.name : t('planner.noShift')}`}
                     >
                       <option value="">{t('planner.noShift')}</option>
@@ -369,6 +477,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
             const dayName = dateObj.toLocaleDateString(i18n.language || 'it', { weekday: 'short' });
             const formattedWeekday = dayName.charAt(0).toUpperCase() + dayName.slice(1, 3);
             const formattedDate = `${formattedWeekday} ${dayNum}`;
+            const syncState = syncDayStates[item.date];
 
             const timeText = shift?.startTime && shift?.endTime
               ? `${shift.startTime} - ${shift.endTime}`
@@ -381,10 +490,18 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
             return (
               <div
                 key={item.date}
-                className="p-3 sm:p-4 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0"
+                className={`p-3 sm:p-4 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0 relative ${
+                  syncState === 'deleting'
+                    ? 'sync-deleting-card'
+                    : syncState === 'creating'
+                      ? 'sync-creating-card'
+                      : syncState === 'created'
+                        ? 'sync-created-card'
+                        : ''
+                }`}
               >
                 {/* Date & Shift Info */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
                   <span className="text-xs sm:text-sm font-bold text-slate-300 w-14 sm:w-18 shrink-0">
                     {formattedDate}
                   </span>
@@ -412,7 +529,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
                 </div>
 
                 {/* Dropdown Selector */}
-                <div className="shrink-0">
+                <div className="relative z-20 shrink-0">
                   <select
                     value={item.shiftTypeId || ''}
                     onChange={(e) => handleShiftChange(item.date, e.target.value || null)}
