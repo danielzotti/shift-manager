@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Trash2, Download, Upload, AlertTriangle, Check, Plus, GripVertical, Pencil, X } from 'lucide-react';
+import { Calendar, Trash2, Download, Upload, AlertTriangle, Check, Plus, GripVertical, Pencil, X, Loader2 } from 'lucide-react';
 import { Reorder } from 'framer-motion';
 import { useAuth } from './AuthContext';
+import { deleteGoogleCalendarEvents } from '../services/googleCalendarService';
 import type { SequenceItem, ShiftType } from '../types/shift';
 import { generateUUID } from '../types/shift';
 
@@ -13,14 +14,17 @@ interface SettingsViewProps {
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts' }) => {
   const { t } = useTranslation();
-  const { config, updateConfig } = useAuth();
+  const { user, config, updateConfig } = useAuth();
 
   // Local tab states
   const [calName, setCalName] = useState(config.calendarName);
   const [deleteOption, setDeleteOption] = useState<'all' | 'from' | 'until' | 'range'>('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [deletedCount, setDeletedCount] = useState<number | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Edit shift modal state
   const [editingShift, setEditingShift] = useState<ShiftType | null>(null);
@@ -67,12 +71,52 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
     }
   };
 
-  const handleDeleteEvents = () => {
-    if (confirm(t('settings.calendar.confirmDelete'))) {
-      setDeleteSuccess(true);
-      setTimeout(() => setDeleteSuccess(false), 3000);
+  const handleDeleteEvents = async () => {
+    setDeleteError(null);
+    setDeleteSuccess(false);
+    setDeletedCount(null);
+
+    if (deleteOption === 'from' && !fromDate) {
+      setDeleteError('Seleziona la data di inizio per l\'eliminazione.');
+      return;
+    }
+    if (deleteOption === 'until' && !toDate) {
+      setDeleteError('Seleziona la data di fine per l\'eliminazione.');
+      return;
+    }
+    if (deleteOption === 'range' && (!fromDate || !toDate)) {
+      setDeleteError('Seleziona sia la data di inizio che di fine per l\'eliminazione.');
+      return;
+    }
+
+    if (!confirm(t('settings.calendar.confirmDelete'))) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      if (user?.accessToken) {
+        const res = await deleteGoogleCalendarEvents(user.accessToken, {
+          deleteOption,
+          fromDate: deleteOption === 'from' || deleteOption === 'range' ? fromDate : undefined,
+          toDate: deleteOption === 'until' || deleteOption === 'range' ? toDate : undefined,
+        });
+        setDeletedCount(res.deletedCount);
+        setDeleteSuccess(true);
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        setDeletedCount(0);
+        setDeleteSuccess(true);
+      }
+    } catch (err: any) {
+      console.error('Delete events failed:', err);
+      setDeleteError(err.message || 'Errore durante l\'eliminazione degli eventi da Google Calendar.');
+    } finally {
+      setIsDeleting(false);
     }
   };
+
 
   const handleAddShift = () => {
     if (!newShift.name) return;
@@ -276,16 +320,34 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
 
             <button
               onClick={handleDeleteEvents}
-              className="w-full sm:w-auto px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-sm rounded-xl transition flex items-center justify-center gap-2"
+              disabled={isDeleting}
+              className="w-full sm:w-auto px-6 py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl transition flex items-center justify-center gap-2"
             >
-              <Trash2 className="w-4 h-4" />
-              {t('settings.calendar.executeDelete')}
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Eliminazione in corso...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  {t('settings.calendar.executeDelete')}
+                </>
+              )}
             </button>
 
+            {deleteError && (
+              <div className="p-3 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-xs font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                {deleteError}
+              </div>
+            )}
+
             {deleteSuccess && (
-              <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl text-xs font-semibold flex items-center gap-2">
-                <Check className="w-4 h-4" />
+              <div className="p-3 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-semibold flex items-center gap-2">
+                <Check className="w-4 h-4 shrink-0" />
                 Operazione completata con successo sul calendario Google!
+                {deletedCount !== null && ` (${deletedCount} eventi eliminati)`}
               </div>
             )}
           </div>
