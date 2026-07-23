@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Trash2, Download, Upload, AlertTriangle, Check, Plus, GripVertical, Pencil, X, Loader2 } from 'lucide-react';
 import { Reorder } from 'framer-motion';
 import { useAuth } from './AuthContext';
-import { deleteGoogleCalendarEvents } from '../services/googleCalendarService';
+import { deleteGoogleCalendarEvents, fetchShiftCalendarSummary } from '../services/googleCalendarService';
 import type { SequenceItem, ShiftType } from '../types/shift';
 import { generateUUID } from '../types/shift';
 
@@ -18,6 +18,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
 
   // Local tab states
   const [calName, setCalName] = useState(config.calendarName);
+  const [isLoadingCalName, setIsLoadingCalName] = useState(false);
   const [deleteOption, setDeleteOption] = useState<'all' | 'from' | 'until' | 'range'>('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -25,6 +26,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const [deletedCount, setDeletedCount] = useState<number | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Load calendar name from Google Calendar on mount or activeTab change
+  useEffect(() => {
+    if (activeTab === 'calendar' && user?.accessToken) {
+      setIsLoadingCalName(true);
+      fetchShiftCalendarSummary(user.accessToken)
+        .then((remoteSummary) => {
+          if (remoteSummary) {
+            setCalName(remoteSummary);
+            updateConfig({ calendarName: remoteSummary });
+          }
+        })
+        .catch((err) => console.error('Failed to fetch remote calendar summary:', err))
+        .finally(() => setIsLoadingCalName(false));
+    }
+  }, [activeTab, user?.accessToken]);
 
   // Edit shift modal state
   const [editingShift, setEditingShift] = useState<ShiftType | null>(null);
@@ -244,16 +261,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
               {t('settings.calendar.nameLabel')}
             </h3>
             <div className="flex gap-3">
-              <input
-                type="text"
-                value={calName}
-                onChange={(e) => setCalName(e.target.value)}
-                placeholder={t('settings.calendar.namePlaceholder')}
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-cyan-500"
-              />
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={calName}
+                  disabled={isLoadingCalName}
+                  onChange={(e) => setCalName(e.target.value)}
+                  placeholder={t('settings.calendar.namePlaceholder')}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-cyan-500 disabled:opacity-60"
+                />
+                {isLoadingCalName && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  </div>
+                )}
+              </div>
               <button
                 onClick={handleSaveCalName}
-                disabled={isSavingName}
+                disabled={isSavingName || isLoadingCalName}
                 className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-semibold rounded-xl text-sm transition flex items-center gap-2"
               >
                 {isSavingName ? (

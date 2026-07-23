@@ -3,6 +3,23 @@ import type { MergedCalendarEvent } from '../utils/shiftCalculator';
 export const APP_ID_TAG = '[APP_ID: shift-manager]';
 export const DEFAULT_CALENDAR_SUMMARY = 'Shift Manager';
 
+export async function fetchShiftCalendarSummary(accessToken: string): Promise<string | null> {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  };
+
+  const listRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', { headers });
+  if (listRes.ok) {
+    const data = await listRes.json();
+    const existing = data.items?.find((cal: any) => cal.description && cal.description.includes(APP_ID_TAG));
+    if (existing && existing.summary) {
+      return existing.summary;
+    }
+  }
+  return null;
+}
+
 export async function updateShiftCalendarName(accessToken: string, newSummary: string): Promise<string> {
   return await getOrCreateShiftCalendar(accessToken, newSummary);
 }
