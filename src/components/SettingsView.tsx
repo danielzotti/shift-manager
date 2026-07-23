@@ -39,8 +39,38 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
     isNoEvent: false,
   });
 
-  const handleSaveCalName = () => {
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [saveNameSuccess, setSaveNameSuccess] = useState(false);
+  const [saveNameError, setSaveNameError] = useState<string | null>(null);
+
+  const handleSaveCalName = async () => {
+    setSaveNameError(null);
+    setSaveNameSuccess(false);
+
+    if (!calName.trim()) {
+      setSaveNameError('Inserisci un nome valido per il calendario.');
+      return;
+    }
+
     updateConfig({ calendarName: calName });
+
+    if (user?.accessToken) {
+      setIsSavingName(true);
+      try {
+        const { updateShiftCalendarName } = await import('../services/googleCalendarService');
+        await updateShiftCalendarName(user.accessToken, calName);
+        setSaveNameSuccess(true);
+        setTimeout(() => setSaveNameSuccess(false), 3000);
+      } catch (err: any) {
+        console.error('Failed to update Google Calendar name:', err);
+        setSaveNameError(err.message || 'Impossibile aggiornare il nome del calendario su Google.');
+      } finally {
+        setIsSavingName(false);
+      }
+    } else {
+      setSaveNameSuccess(true);
+      setTimeout(() => setSaveNameSuccess(false), 3000);
+    }
   };
 
   const handleExportBackup = () => {
@@ -97,11 +127,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
 
     try {
       if (user?.accessToken) {
-        const res = await deleteGoogleCalendarEvents(user.accessToken, {
-          deleteOption,
-          fromDate: deleteOption === 'from' || deleteOption === 'range' ? fromDate : undefined,
-          toDate: deleteOption === 'until' || deleteOption === 'range' ? toDate : undefined,
-        });
+        const res = await deleteGoogleCalendarEvents(
+          user.accessToken,
+          {
+            deleteOption,
+            fromDate: deleteOption === 'from' || deleteOption === 'range' ? fromDate : undefined,
+            toDate: deleteOption === 'until' || deleteOption === 'range' ? toDate : undefined,
+          },
+          config.calendarName
+        );
         setDeletedCount(res.deletedCount);
         setDeleteSuccess(true);
       } else {
@@ -219,11 +253,31 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
               />
               <button
                 onClick={handleSaveCalName}
-                className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-xl text-sm transition"
+                disabled={isSavingName}
+                className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-semibold rounded-xl text-sm transition flex items-center gap-2"
               >
-                {t('settings.calendar.saveName')}
+                {isSavingName ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Salvataggio...
+                  </>
+                ) : (
+                  t('settings.calendar.saveName')
+                )}
               </button>
             </div>
+            {saveNameError && (
+              <div className="p-3 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-xs font-semibold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                {saveNameError}
+              </div>
+            )}
+            {saveNameSuccess && (
+              <div className="p-3 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-semibold flex items-center gap-2">
+                <Check className="w-4 h-4 shrink-0" />
+                Nome calendario aggiornato con successo su Google Calendar!
+              </div>
+            )}
           </div>
 
           <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/50 space-y-4">

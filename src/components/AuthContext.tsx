@@ -68,6 +68,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (loggedInUser) => {
         setUser(loggedInUser);
         localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(loggedInUser));
+
+        // Ensure dedicated Shift Manager calendar exists on login
+        if (loggedInUser.accessToken) {
+          import('../services/googleCalendarService')
+            .then(({ getOrCreateShiftCalendar }) => getOrCreateShiftCalendar(loggedInUser.accessToken))
+            .catch((err) => console.error('Failed to create or verify Shift Manager calendar on login:', err));
+        }
       },
       (error) => {
         console.error('Google Auth Error:', error);

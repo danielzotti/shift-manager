@@ -88,7 +88,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
       const mergedEvents = processShiftsForCalendar(assignments, shiftMap);
 
       if (user?.accessToken) {
-        await syncEventsToGoogleCalendar(user.accessToken, mergedEvents);
+        await syncEventsToGoogleCalendar(user.accessToken, mergedEvents, selectedMonth, config.calendarSummary);
       } else {
         console.log('No accessToken found, simulation mode:', mergedEvents);
         await new Promise((resolve) => setTimeout(resolve, 1500));

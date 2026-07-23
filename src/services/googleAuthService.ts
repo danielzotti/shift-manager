@@ -6,7 +6,7 @@ declare global {
   }
 }
 
-const SCOPES = 'openid email profile https://www.googleapis.com/auth/calendar.events';
+const SCOPES = 'openid email profile https://www.googleapis.com/auth/calendar';
 
 /**
  * Initializes Google OAuth Token Client and requests authorization.

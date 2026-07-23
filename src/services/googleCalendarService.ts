@@ -1,22 +1,41 @@
 import type { MergedCalendarEvent } from '../utils/shiftCalculator';
 
-const SHIFT_MANAGER_CALENDAR_SUMMARY = 'Turni di Lavoro';
+export const APP_ID_TAG = '[APP_ID: shift-manager]';
+export const DEFAULT_CALENDAR_SUMMARY = 'Shift Manager';
+
+export async function updateShiftCalendarName(accessToken: string, newSummary: string): Promise<string> {
+  return await getOrCreateShiftCalendar(accessToken, newSummary);
+}
 
 /**
- * Finds or creates a primary/dedicated 'Turni di Lavoro' calendar.
+ * Finds or creates a dedicated 'Shift Manager' calendar identified by [APP_ID: shift-manager] in description.
+ * Never uses the primary calendar!
  */
-export async function getOrCreateShiftCalendar(accessToken: string): Promise<string> {
+export async function getOrCreateShiftCalendar(accessToken: string, desiredSummary: string = DEFAULT_CALENDAR_SUMMARY): Promise<string> {
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     'Content-Type': 'application/json',
   };
 
-  // 1. List user calendars to check if "Turni di Lavoro" exists
+  // 1. List user calendars to check if calendar with APP_ID in description exists
   const listRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', { headers });
   if (listRes.ok) {
     const data = await listRes.json();
-    const existing = data.items?.find((cal: any) => cal.summary === SHIFT_MANAGER_CALENDAR_SUMMARY);
+    const existing = data.items?.find((cal: any) => cal.description && cal.description.includes(APP_ID_TAG));
     if (existing) {
+      // Check if calendar name needs updating
+      if (desiredSummary && existing.summary !== desiredSummary) {
+        const patchRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(existing.id)}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ summary: desiredSummary }),
+        });
+        if (!patchRes.ok) {
+          const errData = await patchRes.json().catch(() => ({}));
+          console.error('Failed to update calendar summary:', errData);
+          throw new Error(errData?.error?.message || 'Permessi insufficienti per modificare il calendario.');
+        }
+      }
       return existing.id;
     }
   }
@@ -26,8 +45,8 @@ export async function getOrCreateShiftCalendar(accessToken: string): Promise<str
     method: 'POST',
     headers,
     body: JSON.stringify({
-      summary: SHIFT_MANAGER_CALENDAR_SUMMARY,
-      description: 'Calendario turni sincronizzato da Shift Manager PWA',
+      summary: desiredSummary || DEFAULT_CALENDAR_SUMMARY,
+      description: APP_ID_TAG,
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Rome',
     }),
   });
@@ -37,22 +56,88 @@ export async function getOrCreateShiftCalendar(accessToken: string): Promise<str
     return created.id;
   }
 
-  // Fallback to primary calendar if secondary calendar creation is restricted
-  return 'primary';
+  const errData = await createRes.json().catch(() => ({}));
+  throw new Error(errData?.error?.message || 'Impossibile creare il calendario dedicato per Shift Manager su Google Calendar.');
 }
 
 /**
- * Syncs merged events to Google Calendar.
+ * Deletes all events created by Shift Manager for a specific month (YYYY-MM).
  */
-export async function syncEventsToGoogleCalendar(
+export async function deleteMonthShiftEvents(
   accessToken: string,
-  events: MergedCalendarEvent[]
-): Promise<{ success: boolean; syncedCount: number; calendarId: string }> {
-  const calendarId = await getOrCreateShiftCalendar(accessToken);
+  calendarId: string,
+  yearMonth: string // e.g. "2026-07"
+): Promise<void> {
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     'Content-Type': 'application/json',
   };
+
+  // Calculate start of month and end of month ISO bounds
+  const [yearStr, monthStr] = yearMonth.split('-');
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10);
+
+  const timeMin = new Date(year, month - 1, 1, 0, 0, 0).toISOString();
+  const lastDay = new Date(year, month, 0).getDate();
+  const timeMax = new Date(year, month - 1, lastDay, 23, 59, 59, 999).toISOString();
+
+  let pageToken: string | undefined = undefined;
+
+  do {
+    let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true`;
+    if (pageToken) {
+      url += `&pageToken=${encodeURIComponent(pageToken)}`;
+    }
+
+    const res = await fetch(url, { headers });
+    if (!res.ok) break;
+
+    const data = await res.json();
+    const items = data.items || [];
+
+    for (const item of items) {
+      const isShiftManagerEvent =
+        item.extendedProperties?.private?.appId === 'shift-manager' ||
+        (item.description && item.description.includes(APP_ID_TAG));
+
+      if (isShiftManagerEvent && item.id) {
+        await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(item.id)}`,
+          { method: 'DELETE', headers }
+        );
+      }
+    }
+
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+}
+
+/**
+ * Syncs merged events to Google Calendar for a specific month.
+ * First deletes existing Shift Manager events for that month, then creates new ones.
+ */
+export async function syncEventsToGoogleCalendar(
+  accessToken: string,
+  events: MergedCalendarEvent[],
+  yearMonth?: string,
+  desiredSummary?: string
+): Promise<{ success: boolean; syncedCount: number; calendarId: string }> {
+  const calendarId = await getOrCreateShiftCalendar(accessToken, desiredSummary);
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  };
+
+  // If a specific month is targeted, delete all Shift Manager events in that month first
+  if (yearMonth) {
+    await deleteMonthShiftEvents(accessToken, calendarId, yearMonth);
+  } else if (events.length > 0) {
+    // Derive yearMonth from the first event if not explicitly supplied
+    const sampleDate = events[0].startDate; // YYYY-MM-DD
+    const ym = sampleDate.substring(0, 7);
+    await deleteMonthShiftEvents(accessToken, calendarId, ym);
+  }
 
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Rome';
   let count = 0;
@@ -60,21 +145,24 @@ export async function syncEventsToGoogleCalendar(
   for (const event of events) {
     let body: any = {
       summary: event.title,
-      description: 'Sincronizzato da Shift Manager',
+      description: APP_ID_TAG,
+      extendedProperties: {
+        private: {
+          appId: 'shift-manager',
+        },
+      },
     };
 
     if (event.isAllDay) {
       body.start = { date: event.startDate };
       body.end = { date: event.endDate }; // Google Calendar all-day exclusive end date
     } else {
-      // Calculate start and end ISO strings
       const isOvernightShift = event.isOvernight || (event.startTime && event.endTime && event.startTime > event.endTime);
 
       let startDateStr = event.startDate;
       let endDateStr = event.endDate;
 
       if (isOvernightShift) {
-        // Increment end date by +1 day for overnight shift safely without UTC shifts
         const [year, month, day] = event.startDate.split('-').map(Number);
         const endDateObj = new Date(year, month - 1, day + 1);
         const nextYear = endDateObj.getFullYear();
@@ -108,7 +196,7 @@ export async function syncEventsToGoogleCalendar(
 }
 
 /**
- * Deletes events from Google Calendar based on filter options.
+ * Deletes events from Google Calendar based on filter options (only events created by Shift Manager).
  */
 export async function deleteGoogleCalendarEvents(
   accessToken: string,
@@ -116,9 +204,10 @@ export async function deleteGoogleCalendarEvents(
     deleteOption: 'all' | 'from' | 'until' | 'range';
     fromDate?: string;
     toDate?: string;
-  }
+  },
+  desiredSummary?: string
 ): Promise<{ success: boolean; deletedCount: number }> {
-  const calendarId = await getOrCreateShiftCalendar(accessToken);
+  const calendarId = await getOrCreateShiftCalendar(accessToken, desiredSummary);
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     'Content-Type': 'application/json',
@@ -155,7 +244,11 @@ export async function deleteGoogleCalendarEvents(
     const items = data.items || [];
 
     for (const item of items) {
-      if (item.id) {
+      const isShiftManagerEvent =
+        item.extendedProperties?.private?.appId === 'shift-manager' ||
+        (item.description && item.description.includes(APP_ID_TAG));
+
+      if (isShiftManagerEvent && item.id) {
         const delRes = await fetch(
           `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(item.id)}`,
           { method: 'DELETE', headers }
@@ -173,4 +266,5 @@ export async function deleteGoogleCalendarEvents(
 
   return { success: true, deletedCount };
 }
+
 
