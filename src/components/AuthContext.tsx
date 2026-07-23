@@ -58,6 +58,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setConfig((prev) => {
       const updated = normalizeCalendarConfig({ ...prev, ...newConfig });
       localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(updated));
+
+      if (user?.accessToken) {
+        import('../services/googleCalendarService')
+          .then(({ saveShiftCalendarConfig }) => saveShiftCalendarConfig(user.accessToken!, updated))
+          .catch((err) => console.error('Failed to sync updated config to Google Calendar:', err));
+      }
+
       return updated;
     });
   };
@@ -68,6 +75,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthError(reason || null);
   };
 
+  const syncConfigFromGoogleCalendar = async (accessToken: string) => {
+    try {
+      const { fetchShiftCalendarConfig, saveShiftCalendarConfig } = await import('../services/googleCalendarService');
+      const remoteConfig = await fetchShiftCalendarConfig(accessToken);
+      if (remoteConfig) {
+        setConfig(remoteConfig);
+        localStorage.setItem(LOCAL_STORAGE_CONFIG_KEY, JSON.stringify(remoteConfig));
+      } else {
+        // First time or no config stored on Google Calendar yet: push current local config
+        await saveShiftCalendarConfig(accessToken, config);
+      }
+    } catch (err: any) {
+      console.error('Failed to sync config with Google Calendar:', err);
+      if (err?.status === 401 || err?.isUnauthenticated) {
+        logout('Sessione di autenticazione scaduta o non valida. Effettua nuovamente il login con Google.');
+      }
+    }
+  };
+
   const login = () => {
     setAuthError(null);
     requestGoogleLogin(
@@ -75,16 +101,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(loggedInUser);
         localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(loggedInUser));
 
-        // Ensure dedicated Shift Manager calendar exists on login using stored calendarName
         if (loggedInUser.accessToken) {
-          import('../services/googleCalendarService')
-            .then(({ getOrCreateShiftCalendar }) => getOrCreateShiftCalendar(loggedInUser.accessToken, config.calendarName))
-            .catch((err) => {
-              console.error('Failed to create or verify Shift Manager calendar on login:', err);
-              if (err?.status === 401 || err?.isUnauthenticated) {
-                logout('Sessione di autenticazione scaduta o non valida. Effettua nuovamente il login con Google.');
-              }
-            });
+          syncConfigFromGoogleCalendar(loggedInUser.accessToken);
         }
       },
       (error) => {
@@ -93,6 +111,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
   };
+
+  // Sync on page load/refresh if user is already logged in
+  React.useEffect(() => {
+    if (user?.accessToken) {
+      syncConfigFromGoogleCalendar(user.accessToken);
+    }
+  }, []);
 
   const saveDraft = (monthKey: string, data: any) => {
     setDraftAssignments((prev) => {

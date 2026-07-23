@@ -1,4 +1,6 @@
 import type { MergedCalendarEvent } from '../utils/shiftCalculator';
+import type { CalendarConfig } from '../types/shift';
+import { generateUUID, normalizeCalendarConfig } from '../types/shift';
 
 export const APP_ID_TAG = '[APP_ID: shift-manager]';
 export const DEFAULT_CALENDAR_SUMMARY = 'Shift Manager';
@@ -18,6 +20,108 @@ async function handleResponseError(res: Response, defaultMessage: string): Promi
     throw authErr;
   }
   throw new Error(errJson?.error?.message || defaultMessage);
+}
+
+export const CONFIG_EVENT_SUMMARY = '[SHIFT_MANAGER_CONFIG]';
+export const CONFIG_EVENT_DATE = '2000-01-01';
+
+export async function fetchShiftCalendarConfig(accessToken: string): Promise<CalendarConfig | null> {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  };
+
+  const calendarId = await getOrCreateShiftCalendar(accessToken);
+  if (!calendarId) return null;
+
+  const timeMin = new Date('2000-01-01T00:00:00Z').toISOString();
+  const timeMax = new Date('2000-01-02T23:59:59Z').toISOString();
+
+  const searchRes = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&q=${encodeURIComponent(CONFIG_EVENT_SUMMARY)}`,
+    { headers }
+  );
+
+  if (searchRes.ok) {
+    const data = await searchRes.json();
+    const configEvent = data.items?.find((item: any) => item.summary === CONFIG_EVENT_SUMMARY);
+    if (configEvent && configEvent.description) {
+      try {
+        const parsed = JSON.parse(configEvent.description);
+        return normalizeCalendarConfig(parsed);
+      } catch (e) {
+        console.error('Failed to parse config JSON from metadata event:', e);
+      }
+    }
+  } else if (searchRes.status === 401) {
+    await handleResponseError(searchRes, 'Non autenticato');
+  }
+
+  return null;
+}
+
+export async function saveShiftCalendarConfig(accessToken: string, config: CalendarConfig): Promise<void> {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  };
+
+  const calendarId = await getOrCreateShiftCalendar(accessToken, config.calendarName);
+  const timeMin = new Date('2000-01-01T00:00:00Z').toISOString();
+  const timeMax = new Date('2000-01-02T23:59:59Z').toISOString();
+
+  // 1. Search for existing config event
+  const searchRes = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&q=${encodeURIComponent(CONFIG_EVENT_SUMMARY)}`,
+    { headers }
+  );
+
+  if (!searchRes.ok) {
+    await handleResponseError(searchRes, 'Impossibile cercare la configurazione su Google Calendar.');
+  }
+
+  const searchData = await searchRes.json();
+  const existingEvent = searchData.items?.find((item: any) => item.summary === CONFIG_EVENT_SUMMARY);
+
+  const eventBody = {
+    summary: CONFIG_EVENT_SUMMARY,
+    description: JSON.stringify(config),
+    start: { date: CONFIG_EVENT_DATE },
+    end: { date: '2000-01-02' },
+    extendedProperties: {
+      private: {
+        appId: 'shift-manager',
+        type: 'config',
+      },
+    },
+    transparency: 'transparent', // Doesn't block time on calendar
+    visibility: 'private',
+  };
+
+  if (existingEvent?.id) {
+    // 2. Update existing metadata event
+    const patchRes = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(existingEvent.id)}`,
+      {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(eventBody),
+      }
+    );
+    if (!patchRes.ok) {
+      await handleResponseError(patchRes, 'Impossibile aggiornare la configurazione dei turni su Google Calendar.');
+    }
+  } else {
+    // 3. Create new metadata event
+    const createRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(eventBody),
+    });
+    if (!createRes.ok) {
+      await handleResponseError(createRes, 'Impossibile salvare la configurazione dei turni su Google Calendar.');
+    }
+  }
 }
 
 export async function fetchShiftCalendarSummary(accessToken: string): Promise<string | null> {
@@ -61,7 +165,6 @@ export async function getOrCreateShiftCalendar(accessToken: string, desiredSumma
     const data = await listRes.json();
     const existing = data.items?.find((cal: any) => cal.description && cal.description.includes(APP_ID_TAG));
     if (existing) {
-      // Check if calendar name needs updating
       if (desiredSummary && existing.summary !== desiredSummary) {
         const patchRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(existing.id)}`, {
           method: 'PATCH',
