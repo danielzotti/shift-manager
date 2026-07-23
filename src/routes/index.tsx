@@ -1,16 +1,17 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { AuthProvider } from '../components/AuthContext';
-import { MainApp } from '../components/MainApp';
-import '../i18n';
+import { createFileRoute, Navigate } from '@tanstack/react-router';
+import { useAuth } from '../components/AuthContext';
+import { WelcomeLanding } from '../components/WelcomeLanding';
 
 export const Route = createFileRoute('/')({
-  component: App,
+  component: IndexPage,
 });
 
-function App() {
-  return (
-    <AuthProvider>
-      <MainApp />
-    </AuthProvider>
-  );
+function IndexPage() {
+  const { user } = useAuth();
+
+  if (user) {
+    return <Navigate to="/plan/month" replace />;
+  }
+
+  return <WelcomeLanding />;
 }

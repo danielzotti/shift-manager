@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Calendar, Trash2, Download, Upload, AlertTriangle, Check, Plus, GripVertical, Pencil, X } from 'lucide-react';
 import { Reorder } from 'framer-motion';
@@ -6,10 +7,13 @@ import { useAuth } from './AuthContext';
 import type { SequenceItem, ShiftType } from '../types/shift';
 import { generateUUID } from '../types/shift';
 
-export const SettingsView: React.FC = () => {
+interface SettingsViewProps {
+  activeTab?: 'calendar' | 'shifts' | 'sequence';
+}
+
+export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts' }) => {
   const { t } = useTranslation();
   const { config, updateConfig } = useAuth();
-  const [activeTab, setActiveTab] = useState<'calendar' | 'shifts' | 'sequence'>('shifts');
 
   // Local tab states
   const [calName, setCalName] = useState(config.calendarName);
@@ -130,27 +134,30 @@ export const SettingsView: React.FC = () => {
 
       {/* Tabs Switcher */}
       <div className="flex bg-slate-900/80 p-1.5 rounded-xl border border-slate-800">
-        <button
-          onClick={() => setActiveTab('shifts')}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'shifts' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
-            }`}
+        <Link
+          to="/config/shifts"
+          className={`flex-1 text-center py-2.5 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'shifts' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
+          }`}
         >
           {t('settings.tabs.shifts')}
-        </button>
-        <button
-          onClick={() => setActiveTab('sequence')}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'sequence' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
-            }`}
+        </Link>
+        <Link
+          to="/config/sequence"
+          className={`flex-1 text-center py-2.5 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'sequence' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
+          }`}
         >
           {t('settings.tabs.sequence')}
-        </button>
-        <button
-          onClick={() => setActiveTab('calendar')}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'calendar' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
-            }`}
+        </Link>
+        <Link
+          to="/config/calendar"
+          className={`flex-1 text-center py-2.5 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'calendar' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
+          }`}
         >
           {t('settings.tabs.calendar')}
-        </button>
+        </Link>
       </div>
 
       {/* Tab 1: Calendario */}

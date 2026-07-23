@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle, RefreshCw, Save, Loader2, Calendar } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import type { DayShiftAssignment, ShiftType } from '../types/shift';
 import { generateMonthSequence, processShiftsForCalendar } from '../utils/shiftCalculator';
 
-export const PlannerView: React.FC = () => {
+interface PlannerViewProps {
+  viewMode?: 'month' | 'list';
+}
+
+export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) => {
   const { t } = useTranslation();
   const { config, draftAssignments, saveDraft, clearDraft } = useAuth();
 
@@ -27,7 +32,6 @@ export const PlannerView: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState('2026-07'); // YYYY-MM
   const [startShiftId, setStartShiftId] = useState(sequenceOptions[0]?.id || '');
   const [assignments, setAssignments] = useState<DayShiftAssignment[]>([]);
-  const [viewMode, setViewMode] = useState<'month' | 'list'>('month');
   const [syncSuccess, setSyncSuccess] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -105,17 +109,22 @@ export const PlannerView: React.FC = () => {
         <h2 className="text-2xl font-extrabold text-white tracking-tight">{t('planner.title')}</h2>
 
         <div className="flex items-center gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
-          {(['month', 'list'] as const).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                viewMode === mode ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              {t(`planner.views.${mode}`)}
-            </button>
-          ))}
+          <Link
+            to="/plan/month"
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              viewMode === 'month' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            {t('planner.views.month')}
+          </Link>
+          <Link
+            to="/plan/list"
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              viewMode === 'list' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            {t('planner.views.list')}
+          </Link>
         </div>
       </div>
 

@@ -11,6 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as ConfigCalendarRouteImport } from './routes/config/calendar'
+import { Route as ConfigSequenceRouteImport } from './routes/config/sequence'
+import { Route as ConfigShiftsRouteImport } from './routes/config/shifts'
+import { Route as PlanListRouteImport } from './routes/plan/list'
+import { Route as PlanMonthRouteImport } from './routes/plan/month'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +28,110 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfigCalendarRoute = ConfigCalendarRouteImport.update({
+  id: '/config/calendar',
+  path: '/config/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfigSequenceRoute = ConfigSequenceRouteImport.update({
+  id: '/config/sequence',
+  path: '/config/sequence',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfigShiftsRoute = ConfigShiftsRouteImport.update({
+  id: '/config/shifts',
+  path: '/config/shifts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanListRoute = PlanListRouteImport.update({
+  id: '/plan/list',
+  path: '/plan/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanMonthRoute = PlanMonthRouteImport.update({
+  id: '/plan/month',
+  path: '/plan/month',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/profile': typeof ProfileRoute
+  '/config/calendar': typeof ConfigCalendarRoute
+  '/config/sequence': typeof ConfigSequenceRoute
+  '/config/shifts': typeof ConfigShiftsRoute
+  '/plan/list': typeof PlanListRoute
+  '/plan/month': typeof PlanMonthRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/profile': typeof ProfileRoute
+  '/config/calendar': typeof ConfigCalendarRoute
+  '/config/sequence': typeof ConfigSequenceRoute
+  '/config/shifts': typeof ConfigShiftsRoute
+  '/plan/list': typeof PlanListRoute
+  '/plan/month': typeof PlanMonthRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/profile': typeof ProfileRoute
+  '/config/calendar': typeof ConfigCalendarRoute
+  '/config/sequence': typeof ConfigSequenceRoute
+  '/config/shifts': typeof ConfigShiftsRoute
+  '/plan/list': typeof PlanListRoute
+  '/plan/month': typeof PlanMonthRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/profile'
+    | '/config/calendar'
+    | '/config/sequence'
+    | '/config/shifts'
+    | '/plan/list'
+    | '/plan/month'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about'
-  id: '__root__' | '/' | '/about'
+  to:
+    | '/'
+    | '/about'
+    | '/profile'
+    | '/config/calendar'
+    | '/config/sequence'
+    | '/config/shifts'
+    | '/plan/list'
+    | '/plan/month'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/profile'
+    | '/config/calendar'
+    | '/config/sequence'
+    | '/config/shifts'
+    | '/plan/list'
+    | '/plan/month'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  ProfileRoute: typeof ProfileRoute
+  ConfigCalendarRoute: typeof ConfigCalendarRoute
+  ConfigSequenceRoute: typeof ConfigSequenceRoute
+  ConfigShiftsRoute: typeof ConfigShiftsRoute
+  PlanListRoute: typeof PlanListRoute
+  PlanMonthRoute: typeof PlanMonthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +150,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/config/calendar': {
+      id: '/config/calendar'
+      path: '/config/calendar'
+      fullPath: '/config/calendar'
+      preLoaderRoute: typeof ConfigCalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/config/sequence': {
+      id: '/config/sequence'
+      path: '/config/sequence'
+      fullPath: '/config/sequence'
+      preLoaderRoute: typeof ConfigSequenceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/config/shifts': {
+      id: '/config/shifts'
+      path: '/config/shifts'
+      fullPath: '/config/shifts'
+      preLoaderRoute: typeof ConfigShiftsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plan/list': {
+      id: '/plan/list'
+      path: '/plan/list'
+      fullPath: '/plan/list'
+      preLoaderRoute: typeof PlanListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plan/month': {
+      id: '/plan/month'
+      path: '/plan/month'
+      fullPath: '/plan/month'
+      preLoaderRoute: typeof PlanMonthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  ProfileRoute: ProfileRoute,
+  ConfigCalendarRoute: ConfigCalendarRoute,
+  ConfigSequenceRoute: ConfigSequenceRoute,
+  ConfigShiftsRoute: ConfigShiftsRoute,
+  PlanListRoute: PlanListRoute,
+  PlanMonthRoute: PlanMonthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
