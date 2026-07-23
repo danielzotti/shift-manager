@@ -60,6 +60,12 @@ export const ProfileView: React.FC = () => {
           <LogOut className="w-4 h-4" />
           {t('profile.logoutBtn')}
         </button>
+
+        <div className="pt-4 border-t border-slate-800/60 flex items-center justify-center gap-4 text-xs text-slate-500">
+          <a href="/privacy" className="hover:text-cyan-400 underline transition">{t('footer.privacy')}</a>
+          <span>•</span>
+          <a href="/terms" className="hover:text-cyan-400 underline transition">{t('footer.terms')}</a>
+        </div>
       </div>
     </div>
   );

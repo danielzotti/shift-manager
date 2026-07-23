@@ -102,8 +102,14 @@ export const WelcomeLanding: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="text-center py-4 text-xs text-slate-600">
-        Shift Manager PWA &copy; {new Date().getFullYear()} • Powered by TanStack & React
+      <footer className="text-center py-4 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+        <span>Shift Manager PWA &copy; {new Date().getFullYear()}</span>
+        <span className="hidden sm:inline">•</span>
+        <div className="flex items-center gap-3">
+          <a href="/privacy" className="hover:text-cyan-400 underline transition">{t('footer.privacy')}</a>
+          <span>•</span>
+          <a href="/terms" className="hover:text-cyan-400 underline transition">{t('footer.terms')}</a>
+        </div>
       </footer>
     </div>
   );
