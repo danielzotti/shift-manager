@@ -1,6 +1,6 @@
 import type { MergedCalendarEvent } from '../utils/shiftCalculator';
 import type { CalendarConfig } from '../types/shift';
-import { generateUUID, normalizeCalendarConfig } from '../types/shift';
+import { normalizeCalendarConfig } from '../types/shift';
 
 export const APP_ID_TAG = '[APP_ID: shift-manager]';
 export const DEFAULT_CALENDAR_SUMMARY = 'Shift Manager';
@@ -53,8 +53,8 @@ export async function fetchShiftCalendarConfig(accessToken: string): Promise<Cal
         console.error('Failed to parse config JSON from metadata event:', e);
       }
     }
-  } else if (searchRes.status === 401) {
-    await handleResponseError(searchRes, 'Non autenticato');
+  } else {
+    await handleResponseError(searchRes, 'Impossibile recuperare la configurazione dei turni da Google Calendar.');
   }
 
   return null;
@@ -138,9 +138,8 @@ export async function fetchShiftCalendarSummary(accessToken: string): Promise<st
       return existing.summary;
     }
     return null;
-  }
-  if (listRes.status === 401) {
-    await handleResponseError(listRes, 'Non autenticato');
+  } else {
+    await handleResponseError(listRes, 'Impossibile accedere alla lista dei calendari Google.');
   }
   return null;
 }
@@ -197,7 +196,7 @@ export async function getOrCreateShiftCalendar(accessToken: string, desiredSumma
     return created.id;
   }
 
-  await handleResponseError(createRes, 'Impossibile creare il calendario dedicato per Shift Manager su Google Calendar.');
+  return await handleResponseError(createRes, 'Impossibile creare il calendario dedicato per Shift Manager su Google Calendar.');
 }
 
 export type SyncProgressHandler = (status: {
@@ -431,10 +430,7 @@ export async function deleteGoogleCalendarEvents(
         if (delRes.ok || delRes.status === 410 || delRes.status === 404) {
           deletedCount++;
         } else {
-          if (delRes.status === 401) {
-            await handleResponseError(delRes, 'Sessione scaduta');
-          }
-          console.error(`Failed to delete event ${item.id}:`, await delRes.text());
+          await handleResponseError(delRes, `Impossibile eliminare l'evento "${item.summary || item.id}" da Google Calendar.`);
         }
       }
     }

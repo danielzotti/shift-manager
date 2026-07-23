@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Settings, User, Globe } from 'lucide-react';
+import { Calendar, Settings, User, Globe, AlertTriangle, X } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import { WelcomeLanding } from './WelcomeLanding';
 import { Logo } from './Logo';
 
 export const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, googleCalendarError, clearGoogleCalendarError } = useAuth();
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
@@ -49,6 +49,21 @@ export const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ childre
 
       {/* Main Tab Content */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6">
+        {googleCalendarError && (
+          <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm flex items-center justify-between gap-3 shadow-lg shadow-red-950/20">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
+              <span className="font-medium">{googleCalendarError}</span>
+            </div>
+            <button
+              onClick={clearGoogleCalendarError}
+              className="p-1.5 hover:bg-red-500/20 rounded-lg text-red-300 transition cursor-pointer"
+              title="Chiudi"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         {children}
       </main>
 

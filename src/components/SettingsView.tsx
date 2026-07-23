@@ -38,7 +38,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
             updateConfig({ calendarName: remoteSummary });
           }
         })
-        .catch((err) => console.error('Failed to fetch remote calendar summary:', err))
+        .catch((err: any) => {
+          console.error('Failed to fetch remote calendar summary:', err);
+          if (
+            err?.status === 401 ||
+            err?.isUnauthenticated ||
+            err?.message?.includes('UNAUTHENTICATED') ||
+            err?.message?.includes('Invalid Credentials')
+          ) {
+            logout('Sessione di autenticazione scaduta o non valida. Effettua nuovamente il login con Google.');
+            return;
+          }
+          setSaveNameError(err?.message || 'Impossibile recuperare le informazioni del calendario da Google Calendar.');
+        })
         .finally(() => setIsLoadingCalName(false));
     }
   }, [activeTab, user?.accessToken]);

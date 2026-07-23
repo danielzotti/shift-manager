@@ -54,7 +54,7 @@ export const ProfileView: React.FC = () => {
         </div>
 
         <button
-          onClick={logout}
+          onClick={() => logout()}
           className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold rounded-xl text-sm border border-red-500/20 transition flex items-center justify-center gap-2"
         >
           <LogOut className="w-4 h-4" />

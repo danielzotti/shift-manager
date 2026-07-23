@@ -101,7 +101,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
           user.accessToken,
           mergedEvents,
           selectedMonth,
-          config.calendarSummary,
+          config.calendarName,
           (progress) => {
             if (progress.deletedCount !== undefined) deletedCounter = progress.deletedCount;
             if (progress.createdCount !== undefined) createdCounter = progress.createdCount;
@@ -347,7 +347,6 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
 
       {/* Month View Grid */}
       {viewMode === 'month' && (() => {
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
         const firstDayOfWeek = (new Date(year, month, 1).getDay() + 6) % 7; // 0 = Monday, 6 = Sunday
         const prevMonthDays = new Date(year, month, 0).getDate();
 

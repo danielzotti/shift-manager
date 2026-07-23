@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { CalendarConfig, UserProfile } from '../types/shift';
-import { DEFAULT_SEQUENCE, DEFAULT_SHIFTS, normalizeCalendarConfig } from '../types/shift';
+import { normalizeCalendarConfig } from '../types/shift';
 
 import { requestGoogleLogin } from '../services/googleAuthService';
 
@@ -9,6 +9,8 @@ interface AuthContextType {
   login: () => void;
   logout: (reason?: string) => void;
   authError: string | null;
+  googleCalendarError: string | null;
+  clearGoogleCalendarError: () => void;
   config: CalendarConfig;
   updateConfig: (newConfig: Partial<CalendarConfig>) => void;
   draftAssignments: Record<string, any>; // local storage draft by month key
@@ -24,6 +26,7 @@ const LOCAL_STORAGE_DRAFT_KEY = 'shift_manager_drafts';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authError, setAuthError] = useState<string | null>(null);
+  const [googleCalendarError, setGoogleCalendarError] = useState<string | null>(null);
   const [user, setUser] = useState<UserProfile | null>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
@@ -54,6 +57,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return {};
   });
 
+  const clearGoogleCalendarError = () => {
+    setGoogleCalendarError(null);
+  };
+
   const updateConfig = (newConfig: Partial<CalendarConfig>) => {
     setConfig((prev) => {
       const updated = normalizeCalendarConfig({ ...prev, ...newConfig });
@@ -62,7 +69,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user?.accessToken) {
         import('../services/googleCalendarService')
           .then(({ saveShiftCalendarConfig }) => saveShiftCalendarConfig(user.accessToken!, updated))
-          .catch((err) => console.error('Failed to sync updated config to Google Calendar:', err));
+          .catch((err: any) => {
+            console.error('Failed to sync updated config to Google Calendar:', err);
+            if (
+              err?.status === 401 ||
+              err?.isUnauthenticated ||
+              err?.message?.includes('UNAUTHENTICATED') ||
+              err?.message?.includes('Invalid Credentials')
+            ) {
+              logout('Sessione di autenticazione scaduta o non valida. Effettua nuovamente il login con Google.');
+            } else {
+              setGoogleCalendarError(err.message || 'Errore durante il salvataggio della configurazione su Google Calendar.');
+            }
+          });
       }
 
       return updated;
@@ -88,14 +107,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err: any) {
       console.error('Failed to sync config with Google Calendar:', err);
-      if (err?.status === 401 || err?.isUnauthenticated) {
+      if (
+        err?.status === 401 ||
+        err?.isUnauthenticated ||
+        err?.message?.includes('UNAUTHENTICATED') ||
+        err?.message?.includes('Invalid Credentials')
+      ) {
         logout('Sessione di autenticazione scaduta o non valida. Effettua nuovamente il login con Google.');
+      } else {
+        setGoogleCalendarError(err.message || 'Errore durante la sincronizzazione della configurazione con Google Calendar.');
       }
     }
   };
 
   const login = () => {
     setAuthError(null);
+    setGoogleCalendarError(null);
     requestGoogleLogin(
       (loggedInUser) => {
         setUser(loggedInUser);
@@ -143,6 +170,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         authError,
+        googleCalendarError,
+        clearGoogleCalendarError,
         config,
         updateConfig,
         draftAssignments,
