@@ -11,23 +11,23 @@ interface PlannerViewProps {
 }
 
 export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { config, draftAssignments, saveDraft, clearDraft } = useAuth();
 
   const sequenceOptions = config.sequence.length > 0
     ? config.sequence.map((item, index) => {
-        const shift = config.shifts.find((s) => s.id === item.shiftId);
-        return {
-          id: item.id,
-          shiftId: item.shiftId,
-          label: `${t('settings.sequence.day')} ${index + 1}: ${shift ? shift.name : 'Unknown'}`,
-        };
-      })
+      const shift = config.shifts.find((s) => s.id === item.shiftId);
+      return {
+        id: item.id,
+        shiftId: item.shiftId,
+        label: `${t('settings.sequence.day')} ${index + 1}: ${shift ? shift.name : 'Unknown'}`,
+      };
+    })
     : config.shifts.map((s) => ({
-        id: s.id,
-        shiftId: s.id,
-        label: s.name,
-      }));
+      id: s.id,
+      shiftId: s.id,
+      label: s.name,
+    }));
 
   const [selectedMonth, setSelectedMonth] = useState('2026-07'); // YYYY-MM
   const [startShiftId, setStartShiftId] = useState(sequenceOptions[0]?.id || '');
@@ -111,17 +111,15 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
         <div className="flex items-center gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
           <Link
             to="/plan/month"
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              viewMode === 'month' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${viewMode === 'month' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
+              }`}
           >
             {t('planner.views.month')}
           </Link>
           <Link
             to="/plan/list"
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              viewMode === 'list' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${viewMode === 'list' ? 'bg-cyan-500 text-white shadow-md' : 'text-slate-400 hover:text-white'
+              }`}
           >
             {t('planner.views.list')}
           </Link>
@@ -161,10 +159,10 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/60">
+        <div className="flex flex-col sm:flex-row flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/60">
           <button
             onClick={handleGenerate}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs transition flex items-center gap-2"
+            className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs transition flex items-center justify-center gap-2"
           >
             <RefreshCw className="w-4 h-4" />
             {t('planner.generatePreview')}
@@ -173,11 +171,10 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
           <button
             onClick={handleOpenSyncModal}
             disabled={isSyncing}
-            className={`px-6 py-2.5 font-bold rounded-xl text-sm transition flex items-center gap-2 shadow-lg ${
-              isSyncing
-                ? 'bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-700'
-                : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/20'
-            }`}
+            className={`w-full sm:w-auto px-6 py-2.5 font-bold rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-lg ${isSyncing
+              ? 'bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-700'
+              : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/20'
+              }`}
           >
             {isSyncing ? (
               <>
@@ -310,7 +307,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
                 return (
                   <div
                     key={item.date}
-                    className="min-h-[70px] sm:min-h-[90px] p-1.5 sm:p-2.5 rounded-2xl border border-slate-800/80 bg-slate-950/40 hover:bg-slate-900/80 hover:border-slate-700 transition flex flex-col items-center justify-between group relative"
+                    className="min-h-[70px] sm:min-h-[90px] p-1.5 sm:p-2.5 rounded-2xl border border-slate-800/80 bg-slate-950/40 hover:bg-slate-900/80 hover:border-slate-700 transition flex flex-col items-center justify-between group relative md:gap-2"
                   >
                     {/* Day Number */}
                     <span className="text-sm sm:text-base font-bold text-slate-200 leading-none">
@@ -318,11 +315,11 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
                     </span>
 
                     {/* Shift Dot & Name */}
-                    <div className="flex flex-col items-center justify-center gap-1 w-full my-auto">
+                    <div className="flex flex-col items-center justify-center gap-1 sm:gap-2 w-full my-auto z-0 pointer-events-none">
                       {shift ? (
                         <>
                           <div
-                            className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-sm"
+                            className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-sm shrink-0"
                             style={{ backgroundColor: shift.color }}
                           />
                           <span className="text-[10px] sm:text-xs font-semibold text-slate-300 tracking-tight text-center truncate max-w-full">
@@ -339,7 +336,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
                     <select
                       value={item.shiftTypeId || ''}
                       onChange={(e) => handleShiftChange(item.date, e.target.value || null)}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                       title={`${item.date}: ${shift ? shift.name : t('planner.noShift')}`}
                     >
                       <option value="">{t('planner.noShift')}</option>
@@ -361,25 +358,59 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
         <div className="space-y-2">
           {assignments.map((item) => {
             const shift = item.shiftTypeId ? shiftsMap[item.shiftTypeId] : null;
+            const dateObj = new Date(item.date + 'T00:00:00');
+            const dayNum = dateObj.getDate();
+            const dayName = dateObj.toLocaleDateString(i18n.language || 'it', { weekday: 'short' });
+            const formattedWeekday = dayName.charAt(0).toUpperCase() + dayName.slice(1, 3);
+            const formattedDate = `${formattedWeekday} ${dayNum}`;
+
+            const timeText = shift?.startTime && shift?.endTime
+              ? `${shift.startTime} - ${shift.endTime}`
+              : shift?.isAllDay
+                ? t('settings.shifts.allDay')
+                : shift?.isNoEvent
+                  ? t('settings.shifts.noEvent')
+                  : null;
+
             return (
               <div
                 key={item.date}
-                className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/50 flex items-center justify-between"
+                className="p-3 sm:p-4 rounded-2xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 transition flex items-center justify-between gap-3 min-w-0"
               >
-                <span className="text-sm font-semibold text-slate-300">{item.date}</span>
-                <div className="flex items-center gap-3">
-                  {shift && (
-                    <span
-                      className="px-3 py-1 rounded-full text-xs font-bold text-white"
-                      style={{ backgroundColor: shift.color }}
-                    >
-                      {shift.name}
+                {/* Date & Shift Info */}
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                  <span className="text-xs sm:text-sm font-bold text-slate-300 w-14 sm:w-18 shrink-0">
+                    {formattedDate}
+                  </span>
+
+                  {shift ? (
+                    <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap sm:flex-nowrap">
+                      <span
+                        className="px-2.5 py-1 rounded-lg text-xs font-bold text-white shrink-0 truncate max-w-[140px] sm:max-w-[180px]"
+                        style={{ backgroundColor: shift.color }}
+                        title={shift.name}
+                      >
+                        {shift.name}
+                      </span>
+                      {timeText && (
+                        <span className="text-xs text-slate-400 font-medium truncate max-w-[150px] sm:max-w-[220px]">
+                          {timeText}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-500 italic">
+                      {t('planner.noShift')}
                     </span>
                   )}
+                </div>
+
+                {/* Dropdown Selector */}
+                <div className="shrink-0">
                   <select
                     value={item.shiftTypeId || ''}
                     onChange={(e) => handleShiftChange(item.date, e.target.value || null)}
-                    className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-300"
+                    className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 max-w-[130px] sm:max-w-[180px] truncate"
                   >
                     <option value="">{t('planner.noShift')}</option>
                     {config.shifts.map((s) => (
