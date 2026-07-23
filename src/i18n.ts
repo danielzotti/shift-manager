@@ -1,0 +1,235 @@
+import { createInstance } from 'i18next';
+import { initReactI18next } from 'react-i18next';
+
+const resources = {
+  it: {
+    translation: {
+      app: {
+        title: 'Gestione Turni',
+        tagline: 'Pianifica e sincronizza i tuoi turni personali su Google Calendar',
+      },
+      nav: {
+        planner: 'Pianificatore',
+        settings: 'Configurazione',
+        profile: 'Profilo',
+      },
+      auth: {
+        loginGoogle: 'Accedi con Google',
+        logout: 'Esci dall\'account',
+        welcomeTitle: 'Gestisci i tuoi turni di lavoro in semplicità',
+        welcomeSubtitle: 'Pianifica la tua sequenza mensile, personalizza i turni e sincronizza automaticamente con il tuo Google Calendar in un solo click.',
+        feature1Title: 'Sequenza Automatica',
+        feature1Desc: 'Imposta la tua rotazione (es. Giorno, Notte, Smontante, Libero) e calcola l\'intero mese con un click.',
+        feature2Title: 'Google Calendar Sync',
+        feature2Desc: 'Sincronizzazione diretta ed eliminazione smart degli eventi nel tuo calendario dedicato.',
+        feature3Title: 'Accorpamento Smart',
+        feature3Desc: 'I giorni consecutivi di Ferie o Libero vengono uniti automaticamente in un unico evento.',
+        feature4Title: 'PWA Installabile',
+        feature4Desc: 'Funziona su smartphone, tablet e desktop come un\'app nativa anche offline.',
+        requiresAuth: 'È richiesta l\'autenticazione con Google per gestire il calendario dei turni.',
+      },
+      settings: {
+        title: 'Configurazione Turni e Calendario',
+        tabs: {
+          calendar: 'Calendario',
+          shifts: 'Turni',
+          sequence: 'Sequenza',
+        },
+        calendar: {
+          nameLabel: 'Nome Calendario Google',
+          namePlaceholder: 'es. Turni di Lavoro',
+          saveName: 'Salva Nome',
+          backupTitle: 'Backup & Ripristino',
+          backupDesc: 'Scarica o carica la configurazione salvata nei metadati del calendario.',
+          exportBtn: 'Esporta Backup (JSON)',
+          importBtn: 'Importa Backup',
+          dangerZone: 'Area Pericolosa - Eliminazione Eventi',
+          deleteAll: 'Elimina tutti gli eventi turni',
+          deleteFrom: 'Elimina da questa data in poi',
+          deleteUntil: 'Elimina fino a questa data',
+          deleteRange: 'Elimina intervallo date',
+          confirmDelete: 'Sei sicuro di voler eliminare questi eventi dal tuo Google Calendar?',
+          startDate: 'Data Inizio',
+          endDate: 'Data Fine',
+          executeDelete: 'Esegui Eliminazione',
+        },
+        shifts: {
+          title: 'Tipi di Turno Personalizzati',
+          addShift: 'Aggiungi Nuovo Turno',
+          name: 'Nome Turno',
+          startTime: 'Ora Inizio',
+          endTime: 'Ora Fine',
+          allDay: 'Tutto il Giorno',
+          noEvent: 'Nessun Evento (Smontante)',
+          color: 'Colore Visuale',
+          actions: 'Azioni',
+          edit: 'Modifica',
+          delete: 'Elimina',
+          shiftTypes: {
+            giorno: 'Giorno',
+            notte: 'Notte',
+            smontante: 'Smontante Notte',
+            libero: 'Libero',
+            ferie: 'Ferie',
+            mattina: 'Mattina',
+            pomeriggio: 'Pomeriggio',
+          }
+        },
+        sequence: {
+          title: 'Sequenza Ciclica Turni',
+          desc: 'Trascina o ordina i turni per definire il ciclo di rotazione di default.',
+          addStep: 'Aggiungi Turno alla Sequenza',
+          day: 'Giorno',
+          remove: 'Rimuovi',
+        }
+      },
+      planner: {
+        title: 'Pianificatore Mensile',
+        selectMonth: 'Seleziona Mese e Anno',
+        selectStartShift: 'Seleziona Turno di Partenza (Giorno 1)',
+        generatePreview: 'Genera Anteprima Mese',
+        views: {
+          month: 'Mese',
+          week: 'Settimana',
+          day: 'Giorno',
+          list: 'Lista',
+        },
+        syncGoogle: 'Sincronizza su Google Calendar',
+        syncSuccess: 'Turni sincronizzati con successo su Google Calendar!',
+        unsavedChanges: 'Ci sono modifiche non salvate conservate in locale.',
+        clearLocal: 'Ripristina Bozza',
+        dayLabel: 'Giorno',
+        changeShift: 'Cambia Turno',
+        noShift: 'Nessun Turno',
+      },
+      profile: {
+        title: 'Profilo Utente Google',
+        connectedAs: 'Connesso come',
+        email: 'Email',
+        calendarStatus: 'Stato Sincronizzazione Calendario',
+        activeCalendar: 'Calendario Attivo',
+        logoutBtn: 'Disconnetti Google Account',
+      }
+    }
+  },
+  en: {
+    translation: {
+      app: {
+        title: 'Shift Manager',
+        tagline: 'Plan and sync your personal work shifts with Google Calendar',
+      },
+      nav: {
+        planner: 'Planner',
+        settings: 'Settings',
+        profile: 'Profile',
+      },
+      auth: {
+        loginGoogle: 'Sign in with Google',
+        logout: 'Sign Out',
+        welcomeTitle: 'Manage your work shifts effortlessly',
+        welcomeSubtitle: 'Plan your monthly sequence, customize shift types, and sync directly to Google Calendar in one click.',
+        feature1Title: 'Automated Rotation',
+        feature1Desc: 'Set your rotation pattern (e.g. Day, Night, Post-Night, Off) and calculate the full month instantly.',
+        feature2Title: 'Google Calendar Sync',
+        feature2Desc: 'Direct sync and smart event management in your dedicated Google calendar.',
+        feature3Title: 'Smart Event Merging',
+        feature3Desc: 'Consecutive full-day events (e.g., Vacation or Days Off) are merged into single multiday events.',
+        feature4Title: 'Installable PWA',
+        feature4Desc: 'Works smoothly on mobile, tablet, and desktop as a native app with offline support.',
+        requiresAuth: 'Google authentication is required to manage your shift calendar.',
+      },
+      settings: {
+        title: 'Shift & Calendar Configuration',
+        tabs: {
+          calendar: 'Calendar',
+          shifts: 'Shifts',
+          sequence: 'Sequence',
+        },
+        calendar: {
+          nameLabel: 'Google Calendar Name',
+          namePlaceholder: 'e.g. Work Shifts',
+          saveName: 'Save Name',
+          backupTitle: 'Backup & Restore',
+          backupDesc: 'Download or restore configuration stored in Google Calendar metadata.',
+          exportBtn: 'Export Backup (JSON)',
+          importBtn: 'Import Backup',
+          dangerZone: 'Danger Zone - Delete Events',
+          deleteAll: 'Delete all shift events',
+          deleteFrom: 'Delete from this date forward',
+          deleteUntil: 'Delete up to this date',
+          deleteRange: 'Delete date range',
+          confirmDelete: 'Are you sure you want to delete these events from Google Calendar?',
+          startDate: 'Start Date',
+          endDate: 'End Date',
+          executeDelete: 'Execute Deletion',
+        },
+        shifts: {
+          title: 'Custom Shift Types',
+          addShift: 'Add New Shift',
+          name: 'Shift Name',
+          startTime: 'Start Time',
+          endTime: 'End Time',
+          allDay: 'All Day',
+          noEvent: 'No Event (Off-day after night)',
+          color: 'Visual Color',
+          actions: 'Actions',
+          edit: 'Edit',
+          delete: 'Delete',
+          shiftTypes: {
+            giorno: 'Day',
+            notte: 'Night',
+            smontante: 'Post-Night',
+            libero: 'Off',
+            ferie: 'Vacation',
+            mattina: 'Morning',
+            pomeriggio: 'Afternoon',
+          }
+        },
+        sequence: {
+          title: 'Cyclic Shift Sequence',
+          desc: 'Reorder shift types to define your default rotation cycle.',
+          addStep: 'Add Shift to Sequence',
+          day: 'Day',
+          remove: 'Remove',
+        }
+      },
+      planner: {
+        title: 'Monthly Planner',
+        selectMonth: 'Select Month and Year',
+        selectStartShift: 'Select Initial Shift (Day 1)',
+        generatePreview: 'Generate Month Preview',
+        views: {
+          month: 'Month',
+          week: 'Week',
+          day: 'Day',
+          list: 'List',
+        },
+        syncGoogle: 'Sync to Google Calendar',
+        syncSuccess: 'Shifts successfully synced to Google Calendar!',
+        unsavedChanges: 'Unsaved local draft available.',
+        clearLocal: 'Reset Draft',
+        dayLabel: 'Day',
+        changeShift: 'Change Shift',
+        noShift: 'No Shift',
+      },
+      profile: {
+        title: 'Google User Profile',
+        connectedAs: 'Connected as',
+        email: 'Email',
+        calendarStatus: 'Calendar Sync Status',
+        activeCalendar: 'Active Calendar',
+        logoutBtn: 'Disconnect Google Account',
+      }
+    }
+  }
+};
+
+export const i18n = createInstance();
+i18n.use(initReactI18next).init({
+  resources,
+  lng: 'it',
+  fallbackLng: 'en',
+  interpolation: {
+    escapeValue: false,
+  },
+});
