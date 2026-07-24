@@ -1,5 +1,7 @@
 # Shift Manager
 
+[![Shift Manager Video](https://img.youtube.com/vi/lHBvA3R5RWI/0.jpg)](https://youtu.be/lHBvA3R5RWI)
+
 An offline-first Progressive Web Application (PWA) designed for personal work shift management, calendar visualization, cyclic sequence planning, custom shift templates, and smart Google Calendar synchronization.
 
 ---
