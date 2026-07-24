@@ -1,8 +1,8 @@
 # Shift Manager
 
-[![Shift Manager Video](https://img.youtube.com/vi/lHBvA3R5RWI/0.jpg)](https://youtu.be/lHBvA3R5RWI)
-
 An offline-first Progressive Web Application (PWA) designed for personal work shift management, calendar visualization, cyclic sequence planning, custom shift templates, and smart Google Calendar synchronization.
+
+You can find a demo on [YouTube](https://youtu.be/lHBvA3R5RWI)
 
 ---
 
@@ -13,6 +13,7 @@ An offline-first Progressive Web Application (PWA) designed for personal work sh
 **Shift Manager** is a modern, responsive web application built to help shift workers effortlessly plan, schedule, and sync their work rotation.
 
 Key features include:
+
 - **Cyclic Rotation & Pattern Generator**: Set your custom shift sequence (e.g., Day, Night, Post-Night, Off, Vacation) and auto-fill full months with a single click.
 - **Interactive Shift Calendar**: View and manage shifts with custom visual badges, start/end hours, or full-day indicators across Month, Week, Day, and List views.
 - **Visual Sync Animations & Smart Event Merging**: Real-time visual progress during Google Calendar synchronization. Consecutive full-day events (e.g. Vacation/Off) are merged into single multi-day events to keep your calendar clean.
@@ -32,6 +33,7 @@ Key features include:
 **Shift Manager** è una Progressive Web Application (PWA) offline-first concepita per aiutare i lavoratori su turni a pianificare, gestire e sincronizzare la propria rotazione lavorativa in modo semplice e veloce.
 
 Caratteristiche principali:
+
 - **Generatore di Sequenza Ciclica**: Imposta la tua rotazione personalizzata (es. Giorno, Notte, Smontante, Libero, Ferie) e calcola l'intero mese con un solo click.
 - **Pianificatore e Calendario Interattivo**: Visualizza e modifica i turni con badge colorati, orari di inizio/fine o indicatori di tutto il giorno nelle viste Mese, Settimana, Giorno e Lista.
 - **Animazioni di Sincronizzazione e Accorpamento Smart**: Feedback visivo animato passo-passo durante la sincronizzazione con Google Calendar. I giorni consecutivi di Ferie o Libero vengono accorpati in un unico evento multi-giorno per un calendario sempre ordinato.
