@@ -297,6 +297,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
     updateConfig({ sequence: [...config.sequence, newItem] });
   };
 
+  // Local state for drag & drop sequence to avoid API calls during movement
+  const [localSequence, setLocalSequence] = useState(config.sequence);
+
+  useEffect(() => {
+    setLocalSequence(config.sequence);
+  }, [config.sequence]);
+
   const handleRemoveFromSequence = (index: number) => {
     const nextSeq = [...config.sequence];
     nextSeq.splice(index, 1);
@@ -304,7 +311,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
   };
 
   const handleReorderSequence = (newSequence: SequenceItem[]) => {
-    updateConfig({ sequence: newSequence });
+    setLocalSequence(newSequence);
+  };
+
+  const handleDragEndSequence = () => {
+    updateConfig({ sequence: localSequence });
   };
 
   return (
@@ -721,16 +732,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
 
             <Reorder.Group
               axis="y"
-              values={config.sequence}
+              values={localSequence}
               onReorder={handleReorderSequence}
               className="space-y-2"
             >
-              {config.sequence.map((item, index) => {
+              {localSequence.map((item, index) => {
                 const shift = config.shifts.find((s) => s.id === item.shiftId);
                 return (
                   <Reorder.Item
                     key={item.id}
                     value={item}
+                    onDragEnd={handleDragEndSequence}
                     className="flex items-center justify-between p-3 rounded-xl border border-slate-800 bg-slate-950 cursor-grab active:cursor-grabbing select-none"
                   >
                     <div className="flex items-center gap-3">

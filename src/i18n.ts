@@ -324,12 +324,31 @@ const resources = {
   }
 };
 
+const SAVED_LANGUAGE_KEY = 'shift_manager_language';
+
+const getInitialLanguage = (): string => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const savedLang = localStorage.getItem(SAVED_LANGUAGE_KEY);
+    if (savedLang) {
+      return savedLang;
+    }
+  }
+  return 'it';
+};
+
 export const i18n = createInstance();
 i18n.use(initReactI18next).init({
   resources,
-  lng: 'it',
+  lng: getInitialLanguage(),
   fallbackLng: 'en',
   interpolation: {
     escapeValue: false,
   },
 });
+
+i18n.on('languageChanged', (lng) => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    localStorage.setItem(SAVED_LANGUAGE_KEY, lng);
+  }
+});
+
