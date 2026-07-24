@@ -75,9 +75,8 @@ export const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ childre
           <div className="max-w-md mx-auto flex justify-around items-center">
             <Link
               to="/plan/month"
-              className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition ${
-                isPlanActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
-              }`}
+              className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition ${isPlanActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+                }`}
             >
               <Calendar className="w-5 h-5" />
               <span className="text-[11px]">{t('nav.planner')}</span>
@@ -85,9 +84,8 @@ export const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ childre
 
             <Link
               to="/config/shifts"
-              className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition ${
-                isConfigActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
-              }`}
+              className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition ${isConfigActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+                }`}
             >
               <Settings className="w-5 h-5" />
               <span className="text-[11px]">{t('nav.settings')}</span>
@@ -95,9 +93,8 @@ export const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ childre
 
             <Link
               to="/profile"
-              className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition ${
-                isProfileActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
-              }`}
+              className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition ${isProfileActive ? 'text-cyan-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+                }`}
             >
               <User className="w-5 h-5" />
               <span className="text-[11px]">{t('nav.profile')}</span>
@@ -106,7 +103,7 @@ export const MainAppLayout: React.FC<{ children: React.ReactNode }> = ({ childre
         </nav>
       ) : (
         <footer className="py-4 border-t border-slate-800 text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
-          <span>Shift Manager PWA &copy; {new Date().getFullYear()}</span>
+          <span>Shift Manager</span>
           <span className="hidden sm:inline">•</span>
           <div className="flex items-center gap-3">
             <Link to="/privacy" className="hover:text-cyan-400 underline transition">{t('footer.privacy')}</Link>

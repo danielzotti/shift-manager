@@ -13,8 +13,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       manifest: {
         name: 'Shift Manager',
-        short_name: 'ShiftManager',
-        description: 'Pianifica e sincronizza i tuoi turni di lavoro personali con Google Calendar',
+        short_name: 'Shift Manager',
+        description: 'Plan and sync your personal work shifts with Google Calendar',
         theme_color: '#020617',
         background_color: '#020617',
         display: 'standalone',
