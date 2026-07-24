@@ -16,7 +16,8 @@ const resources = {
       auth: {
         loginGoogle: 'Accedi con Google',
         logout: 'Esci dall\'account',
-        welcomeTitle: 'Shift Manager: Gestisci i tuoi turni di lavoro in semplicità',
+        welcomeTitle: 'Shift Manager',
+        welcomeSubtitleText: 'Gestisci i tuoi turni di lavoro in semplicità',
         welcomeSubtitle: 'Shift Manager è l\'applicazione web gratuita creata per pianificare la tua rotazione mensile dei turni di lavoro e sincronizzarli in modo sicuro e automatico sul tuo calendario personale Google Calendar.',
         feature1Title: 'Sequenza Automatica',
         feature1Desc: 'Imposta la tua rotazione (es. Giorno, Notte, Smontante, Libero) e calcola l\'intero mese con un click.',
@@ -176,7 +177,8 @@ const resources = {
       auth: {
         loginGoogle: 'Sign in with Google',
         logout: 'Sign Out',
-        welcomeTitle: 'Shift Manager: Manage your work shifts effortlessly',
+        welcomeTitle: 'Shift Manager',
+        welcomeSubtitleText: 'Manage your work shifts effortlessly',
         welcomeSubtitle: 'Shift Manager is a free web application designed to plan your monthly shift rotations and securely synchronize them directly with your personal Google Calendar.',
         feature1Title: 'Automated Rotation',
         feature1Desc: 'Set your rotation pattern (e.g. Day, Night, Post-Night, Off) and calculate the full month instantly.',

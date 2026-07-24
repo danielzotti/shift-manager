@@ -37,9 +37,14 @@ export const WelcomeLanding: React.FC = () => {
           <span>{t('app.tagline')}</span>
         </div>
 
-        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-tight">
-          {t('auth.welcomeTitle')}
-        </h1>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-tight">
+            {t('auth.welcomeTitle')}
+          </h1>
+          <h2 className="text-xl sm:text-3xl font-semibold text-slate-300 tracking-tight">
+            {t('auth.welcomeSubtitleText')}
+          </h2>
+        </div>
 
         <p className="text-slate-400 text-base sm:text-xl max-w-2xl leading-relaxed">
           {t('auth.welcomeSubtitle')}
