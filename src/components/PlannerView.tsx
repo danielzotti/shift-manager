@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, RefreshCw, Save, Loader2, Calendar, AlertTriangle } from 'lucide-react';
+import { CheckCircle, RefreshCw, Save, Loader2, AlertTriangle } from 'lucide-react';
 import { useAuth } from './AuthContext';
 import type { DayShiftAssignment, ShiftType } from '../types/shift';
 import { generateMonthSequence, processShiftsForCalendar } from '../utils/shiftCalculator';
 import { syncEventsToGoogleCalendar } from '../services/googleCalendarService';
 import { ConfirmModal } from './ConfirmModal';
+import { CustomSelect } from './CustomSelect';
+import { CustomMonthPicker } from './CustomMonthPicker';
 
 interface PlannerViewProps {
   viewMode?: 'month' | 'list';
@@ -200,11 +202,9 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
             <label className="block text-xs font-semibold text-slate-400 mb-1.5">
               {t('planner.selectMonth')}
             </label>
-            <input
-              type="month"
+            <CustomMonthPicker
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
+              onChange={(val) => setSelectedMonth(val)}
             />
           </div>
 
@@ -212,17 +212,11 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
             <label className="block text-xs font-semibold text-slate-400 mb-1.5">
               {t('planner.selectStartShift')}
             </label>
-            <select
+            <CustomSelect
+              options={sequenceOptions.map((opt) => ({ value: opt.id, label: opt.label }))}
               value={startShiftId}
-              onChange={(e) => setStartShiftId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
-            >
-              {sequenceOptions.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setStartShiftId(val)}
+            />
           </div>
         </div>
 
@@ -401,9 +395,20 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
                 const syncState = syncDayStates[item.date];
 
                 return (
-                  <div
+                  <CustomSelect
                     key={item.date}
-                    className={`min-h-[70px] sm:min-h-[90px] p-1.5 sm:p-2.5 rounded-2xl border border-slate-800/80 bg-slate-950/40 hover:bg-slate-900/80 hover:border-slate-700 transition flex flex-col items-center justify-between group relative md:gap-2 ${
+                    options={[
+                      { value: '', label: t('planner.noShift') },
+                      ...config.shifts.map((s) => ({
+                        value: s.id,
+                        label: s.name,
+                        color: s.color,
+                      })),
+                    ]}
+                    value={item.shiftTypeId || ''}
+                    onChange={(val) => handleShiftChange(item.date, val || null)}
+                    className="w-full"
+                    buttonClassName={`w-full min-h-[70px] sm:min-h-[90px] p-1.5 sm:p-2.5 rounded-2xl border border-slate-800/80 bg-slate-950/40 hover:bg-slate-900/80 hover:border-slate-700 transition flex flex-col items-center justify-between group relative md:gap-2 cursor-pointer ${
                       syncState === 'deleting'
                         ? 'sync-deleting-card'
                         : syncState === 'creating'
@@ -412,45 +417,30 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
                             ? 'sync-created-card'
                             : ''
                     }`}
-                  >
-                    {/* Day Number */}
-                    <span className="relative z-10 text-sm sm:text-base font-bold text-slate-200 leading-none">
-                      {cell.dayNum}
-                    </span>
-
-                    {/* Shift Dot & Name */}
-                    <div className="relative z-10 flex flex-col items-center justify-center gap-1 sm:gap-2 w-full my-auto pointer-events-none">
-                      {shift ? (
-                        <>
-                          <div
-                            className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-sm shrink-0"
-                            style={{ backgroundColor: shift.color }}
-                          />
-                          <span className="text-[10px] sm:text-xs font-semibold text-slate-300 tracking-tight text-center truncate max-w-full">
-                            <span className="sm:hidden">{shift.name.slice(0, 3)}</span>
-                            <span className="hidden sm:inline">{shift.name}</span>
-                          </span>
-                        </>
-                      ) : (
-                        <div className="h-4" />
-                      )}
-                    </div>
-
-                    {/* Quick Shift Selector on Click/Hover */}
-                    <select
-                      value={item.shiftTypeId || ''}
-                      onChange={(e) => handleShiftChange(item.date, e.target.value || null)}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20"
-                      title={`${item.date}: ${shift ? shift.name : t('planner.noShift')}`}
-                    >
-                      <option value="">{t('planner.noShift')}</option>
-                      {config.shifts.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                    customTrigger={() => (
+                      <>
+                        <span className="relative z-10 text-sm sm:text-base font-bold text-slate-200 leading-none">
+                          {cell.dayNum}
+                        </span>
+                        <div className="relative z-10 flex flex-col items-center justify-center gap-1 sm:gap-2 w-full my-auto pointer-events-none">
+                          {shift ? (
+                            <>
+                              <div
+                                className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-sm shrink-0"
+                                style={{ backgroundColor: shift.color }}
+                              />
+                              <span className="text-[10px] sm:text-xs font-semibold text-slate-300 tracking-tight text-center truncate max-w-full">
+                                <span className="sm:hidden">{shift.name.slice(0, 3)}</span>
+                                <span className="hidden sm:inline">{shift.name}</span>
+                              </span>
+                            </>
+                          ) : (
+                            <div className="h-4" />
+                          )}
+                        </div>
+                      </>
+                    )}
+                  />
                 );
               })}
             </div>
@@ -519,19 +509,20 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ viewMode = 'month' }) 
                 </div>
 
                 {/* Dropdown Selector */}
-                <div className="relative z-20 shrink-0">
-                  <select
+                <div className="relative focus-within:z-50 shrink-0">
+                  <CustomSelect
+                    options={[
+                      { value: '', label: t('planner.noShift') },
+                      ...config.shifts.map((s) => ({
+                        value: s.id,
+                        label: s.name,
+                        color: s.color,
+                      })),
+                    ]}
                     value={item.shiftTypeId || ''}
-                    onChange={(e) => handleShiftChange(item.date, e.target.value || null)}
-                    className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 max-w-[130px] sm:max-w-[180px] truncate"
-                  >
-                    <option value="">{t('planner.noShift')}</option>
-                    {config.shifts.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => handleShiftChange(item.date, val || null)}
+                    className="w-[130px] sm:w-[180px]"
+                  />
                 </div>
               </div>
             );

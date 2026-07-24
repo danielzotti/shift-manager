@@ -8,6 +8,7 @@ import { deleteGoogleCalendarEvents, fetchShiftCalendarSummary } from '../servic
 import type { SequenceItem, ShiftType } from '../types/shift';
 import { generateUUID } from '../types/shift';
 import { ConfirmModal } from './ConfirmModal';
+import { CustomDatePicker } from './CustomDatePicker';
 
 interface SettingsViewProps {
   activeTab?: 'calendar' | 'shifts' | 'sequence';
@@ -472,22 +473,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
                 {(deleteOption === 'from' || deleteOption === 'range') && (
                   <div>
                     <label className="block text-xs text-slate-400 mb-1">{t('settings.calendar.startDate')}</label>
-                    <input
-                      type="date"
+                    <CustomDatePicker
                       value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-sm text-white"
+                      onChange={(val) => setFromDate(val)}
+                      className="w-40 sm:w-48"
                     />
                   </div>
                 )}
                 {(deleteOption === 'until' || deleteOption === 'range') && (
                   <div>
                     <label className="block text-xs text-slate-400 mb-1">{t('settings.calendar.endDate')}</label>
-                    <input
-                      type="date"
+                    <CustomDatePicker
                       value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-sm text-white"
+                      onChange={(val) => setToDate(val)}
+                      className="w-40 sm:w-48"
                     />
                   </div>
                 )}
@@ -548,120 +547,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
       {/* Tab 2: Turni */}
       {activeTab === 'shifts' && (
         <div className="space-y-6">
-          <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/50 space-y-4">
-            <h3 className="text-lg font-bold text-slate-200">{t('settings.shifts.addShift')}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Nome Turno */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">
-                  {t('settings.shifts.name')}
-                </label>
-                <input
-                  type="text"
-                  placeholder={t('settings.shifts.name')}
-                  value={newShift.name}
-                  onChange={(e) => setNewShift({ ...newShift, name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 transition"
-                />
-              </div>
-
-              {/* Colore Visuale */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">
-                  {t('settings.shifts.color')}
-                </label>
-                <div className="flex items-center gap-3 h-[42px] px-3 bg-slate-950 border border-slate-800 rounded-xl">
-                  <input
-                    type="color"
-                    value={newShift.color}
-                    onChange={(e) => setNewShift({ ...newShift, color: e.target.value })}
-                    className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
-                  />
-                  <span className="text-xs font-mono text-slate-300 flex-1">{newShift.color}</span>
-                  <button
-                    type="button"
-                    onClick={handleRefreshNewColor}
-                    title="Genera un colore casuale non usato"
-                    className="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-slate-900 rounded-lg transition"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Opzioni Checkbox Touch-Friendly */}
-              <div className="md:col-span-2 space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-400">
-                  Tipologia Turno
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label
-                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition min-h-[44px] ${
-                      newShift.isAllDay
-                        ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200'
-                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={newShift.isAllDay}
-                      onChange={(e) => setNewShift({ ...newShift, isAllDay: e.target.checked, isNoEvent: false })}
-                      className="w-5 h-5 accent-cyan-500 rounded cursor-pointer"
-                    />
-                    <span className="text-xs font-medium">{t('settings.shifts.allDay')}</span>
-                  </label>
-
-                  <label
-                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition min-h-[44px] ${
-                      newShift.isNoEvent
-                        ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200'
-                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={newShift.isNoEvent}
-                      onChange={(e) => setNewShift({ ...newShift, isNoEvent: e.target.checked, isAllDay: false })}
-                      className="w-5 h-5 accent-cyan-500 rounded cursor-pointer"
-                    />
-                    <span className="text-xs font-medium">{t('settings.shifts.noEvent')}</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Orari Turno */}
-              {!newShift.isAllDay && !newShift.isNoEvent && (
-                <div className="md:col-span-2 space-y-1.5">
-                  <label className="block text-xs font-semibold text-slate-400">
-                    Orario Turno
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="time"
-                      value={newShift.startTime}
-                      onChange={(e) => setNewShift({ ...newShift, startTime: e.target.value })}
-                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 transition min-h-[44px]"
-                    />
-                    <span className="text-slate-500 font-medium">-</span>
-                    <input
-                      type="time"
-                      value={newShift.endTime}
-                      onChange={(e) => setNewShift({ ...newShift, endTime: e.target.value })}
-                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 transition min-h-[44px]"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={handleAddShift}
-              className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-xl text-sm transition flex items-center gap-2 min-h-[44px] justify-center"
-            >
-              <Plus className="w-4 h-4" />
-              {t('settings.shifts.addShift')}
-            </button>
-          </div>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -718,6 +603,121 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="p-6 rounded-2xl border border-slate-800 bg-slate-900/50 space-y-4">
+            <h3 className="text-lg font-bold text-slate-200">{t('settings.shifts.addShift')}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Nome Turno */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">
+                  {t('settings.shifts.name')}
+                </label>
+                <input
+                  type="text"
+                  placeholder={t('settings.shifts.name')}
+                  value={newShift.name}
+                  onChange={(e) => setNewShift({ ...newShift, name: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 transition"
+                />
+              </div>
+
+              {/* Colore Visuale */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">
+                  {t('settings.shifts.color')}
+                </label>
+                <div className="flex items-center gap-3 h-[42px] px-3 bg-slate-950 border border-slate-800 rounded-xl">
+                  <input
+                    type="color"
+                    value={newShift.color}
+                    onChange={(e) => setNewShift({ ...newShift, color: e.target.value })}
+                    className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
+                  />
+                  <span className="text-xs font-mono text-slate-300 flex-1">{newShift.color}</span>
+                  <button
+                    type="button"
+                    onClick={handleRefreshNewColor}
+                    title="Genera un colore casuale non usato"
+                    className="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-slate-900 rounded-lg transition"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Opzioni Checkbox Touch-Friendly */}
+              <div className="md:col-span-2 space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-400">
+                  Tipologia Turno
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label
+                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition min-h-[44px] ${newShift.isAllDay
+                      ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200'
+                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                      }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={newShift.isAllDay}
+                      onChange={(e) => setNewShift({ ...newShift, isAllDay: e.target.checked, isNoEvent: false })}
+                      className="w-5 h-5 accent-cyan-500 rounded cursor-pointer"
+                    />
+                    <span className="text-xs font-medium">{t('settings.shifts.allDay')}</span>
+                  </label>
+
+                  <label
+                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition min-h-[44px] ${newShift.isNoEvent
+                      ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200'
+                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                      }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={newShift.isNoEvent}
+                      onChange={(e) => setNewShift({ ...newShift, isNoEvent: e.target.checked, isAllDay: false })}
+                      className="w-5 h-5 accent-cyan-500 rounded cursor-pointer"
+                    />
+                    <span className="text-xs font-medium">{t('settings.shifts.noEvent')}</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Orari Turno */}
+              {!newShift.isAllDay && !newShift.isNoEvent && (
+                <div className="md:col-span-2 space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-400">
+                    Orario Turno
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="time"
+                      value={newShift.startTime}
+                      onChange={(e) => setNewShift({ ...newShift, startTime: e.target.value })}
+                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 transition min-h-[44px]"
+                    />
+                    <span className="text-slate-500 font-medium">-</span>
+                    <input
+                      type="time"
+                      value={newShift.endTime}
+                      onChange={(e) => setNewShift({ ...newShift, endTime: e.target.value })}
+                      className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 transition min-h-[44px]"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={handleAddShift}
+                className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded-xl text-sm transition flex items-center gap-2 min-h-[44px] justify-center"
+              >
+                <Plus className="w-4 h-4" />
+                {t('settings.shifts.addShift')}
+              </button>
             </div>
           </div>
         </div>
@@ -858,11 +858,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <label
-                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition min-h-[44px] ${
-                      editingShift.isAllDay
-                        ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200'
-                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
-                    }`}
+                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition min-h-[44px] ${editingShift.isAllDay
+                      ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200'
+                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                      }`}
                   >
                     <input
                       type="checkbox"
@@ -880,11 +879,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ activeTab = 'shifts'
                   </label>
 
                   <label
-                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition min-h-[44px] ${
-                      editingShift.isNoEvent
-                        ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200'
-                        : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
-                    }`}
+                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition min-h-[44px] ${editingShift.isNoEvent
+                      ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200'
+                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                      }`}
                   >
                     <input
                       type="checkbox"
